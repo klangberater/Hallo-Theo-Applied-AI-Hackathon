@@ -38,6 +38,17 @@ if not DATABASE_URL:
 _pool: asyncpg.Pool | None = None
 
 
+def _json_encoder(value):
+    """Lenient encoder — accepts either a JSON-string (pre-serialized) or a
+    Python object. Necessary because much of the codebase calls json.dumps()
+    itself before passing the value as $N::jsonb. With the default
+    json.dumps encoder, those values would be double-encoded into a JSONB
+    string value (top-level "string" instead of "object")."""
+    if isinstance(value, (str, bytes, bytearray)):
+        return value  # already serialized — pass through
+    return json.dumps(value, default=str, ensure_ascii=False)
+
+
 async def _init_connection(conn: asyncpg.Connection) -> None:
     """Run on every fresh connection: pin search_path + auto-decode JSON(B).
 
@@ -49,13 +60,13 @@ async def _init_connection(conn: asyncpg.Connection) -> None:
     await conn.execute("SET search_path TO theo, public")
     await conn.set_type_codec(
         "jsonb",
-        encoder=json.dumps,
+        encoder=_json_encoder,
         decoder=json.loads,
         schema="pg_catalog",
     )
     await conn.set_type_codec(
         "json",
-        encoder=json.dumps,
+        encoder=_json_encoder,
         decoder=json.loads,
         schema="pg_catalog",
     )
