@@ -31,11 +31,23 @@ router = APIRouter()  # nginx strips '/api/' before forwarding
 
 
 @router.get("/tickets")
-async def list_tickets(limit: int = 50) -> list[dict]:
-    """Inbox list. Joins through channel_thread + lease to resolve the sender."""
+async def list_tickets(limit: int = 50, include_closed: bool = False) -> list[dict]:
+    """Inbox list. Joins through channel_thread + lease to resolve the sender.
+
+    By default hides status='closed' tickets *except* those Theo handled
+    autonomously (which are 'closed' from the agent's POV but Sarah still
+    needs to see them as "review-only" rows at the top). Pass
+    include_closed=true to see the full historical archive.
+    """
+    closed_filter = ""
+    if not include_closed:
+        closed_filter = (
+            "WHERE t.status != 'closed' "
+            "   OR t.enrichment->>'autonomy_mode' = 'autonomous_done' "
+        )
     async with connect() as conn:
         rows = await conn.fetch(
-            """
+            f"""
             SELECT t.id, t.unit_id, t.category, t.priority, t.status, t.opened_at,
                    t.classified_intent, t.full_text,
                    t.enrichment->'prior_incidents'->>'count' AS pattern_count,
@@ -49,17 +61,15 @@ async def list_tickets(limit: int = 50) -> list[dict]:
             LEFT JOIN theo.tenants tn_lease ON tn_lease.id = l.tenant_id
             LEFT JOIN theo.channel_threads ct ON ct.id = t.source_thread_id
             LEFT JOIN theo.tenants tn_ct ON tn_ct.id = ct.tenant_id
+            {closed_filter}
             ORDER BY
-                -- 1. autonomous_done tickets at the very top (already handled)
                 CASE WHEN t.enrichment->>'autonomy_mode' = 'autonomous_done'
                      THEN 0 ELSE 1 END,
-                -- 2. then by priority — DRINGEND first, then Hoch, then Standard
                 CASE t.priority
                     WHEN 'DRINGEND' THEN 0
                     WHEN 'Hoch'     THEN 1
                     ELSE 2
                 END,
-                -- 3. finally by recency
                 t.opened_at DESC NULLS LAST
             LIMIT $1
             """,
