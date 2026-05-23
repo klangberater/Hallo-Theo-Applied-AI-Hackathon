@@ -86,7 +86,10 @@ async def get_graphiti() -> Any:
     from graphiti_core import Graphiti
     from graphiti_core.embedder.openai import OpenAIEmbedder, OpenAIEmbedderConfig
     from graphiti_core.llm_client.config import LLMConfig
-    from graphiti_core.llm_client.openai_client import OpenAIClient
+    # OpenAIGenericClient uses /v1/chat/completions — works with Together,
+    # Fireworks, OpenRouter, etc. (The default OpenAIClient uses /v1/responses,
+    # which only OpenAI itself implements.)
+    from graphiti_core.llm_client.openai_generic_client import OpenAIGenericClient
 
     llm_config = LLMConfig(
         api_key=OPENAI_API_KEY,
@@ -94,7 +97,7 @@ async def get_graphiti() -> Any:
         model=GRAPHITI_LLM_MODEL,
         small_model=GRAPHITI_SMALL_MODEL,
     )
-    llm_client = OpenAIClient(config=llm_config)
+    llm_client = OpenAIGenericClient(config=llm_config)
 
     embedder = OpenAIEmbedder(
         config=OpenAIEmbedderConfig(
