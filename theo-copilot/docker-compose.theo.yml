@@ -1,0 +1,42 @@
+# Theo Copilot — Docker Compose
+#
+# Lives ALONGSIDE the existing fletcher-db / nebula / cockpit services on the
+# team server. All ports bound to 127.0.0.1 only — demo access via SSH tunnel
+# or auth'd reverse proxy.
+#
+# Bring up:    docker compose -f theo-copilot/docker-compose.theo.yml up -d
+# Logs:        docker compose -f theo-copilot/docker-compose.theo.yml logs -f neo4j
+# Tear down:   docker compose -f theo-copilot/docker-compose.theo.yml down  (volumes preserved)
+
+services:
+  neo4j:
+    image: neo4j:5.26
+    container_name: theo-neo4j
+    restart: unless-stopped
+    environment:
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+      # Memory tuning for the small server (5.26 is hungry by default)
+      - NEO4J_server_memory_heap_initial__size=512m
+      - NEO4J_server_memory_heap_max__size=1024m
+      - NEO4J_server_memory_pagecache_size=512m
+    ports:
+      - "127.0.0.1:7687:7687"      # bolt (graphiti-core connects here)
+      - "127.0.0.1:7474:7474"      # browser UI (handy via SSH tunnel for debugging)
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+
+# The FastAPI intake (theo-intake) and Streamlit app (theo-app) run via
+# systemd (or `python -m` for dev) on the host rather than in containers
+# because:
+#   - Iteration speed matters more than reproducibility this weekend
+#   - They need to talk to fletcher-db (host network) AND theo-neo4j (this
+#     compose network) without docker-compose network gymnastics
+# If we later containerize them, add services here that share neo4j's
+# network and use 'host.docker.internal:5433' or similar for fletcher-db.

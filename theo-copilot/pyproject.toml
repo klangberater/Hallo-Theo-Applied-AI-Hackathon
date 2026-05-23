@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "theo-copilot"
+version = "0.0.1"
+description = "AI-powered operations inbox for hallo theo (hackathon build)"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+dependencies = [
+    # LLM
+    "anthropic>=0.40.0",            # Anthropic SDK for the enrichment loop
+    "graphiti-core>=0.6.0",         # temporal memory (L3); uses OPENAI_API_KEY by default
+    "openai>=1.50.0",               # Graphiti's default extraction provider
+
+    # Web
+    "fastapi>=0.115.0",             # intake webhook
+    "uvicorn[standard]>=0.32.0",
+    "streamlit>=1.40.0",            # inbox UI
+    "httpx>=0.27.0",
+
+    # Data
+    "asyncpg>=0.30.0",              # Postgres async driver
+    "psycopg2-binary>=2.9.9",       # Postgres sync driver (Streamlit + migrations)
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.6.0",
+
+    # Wiki retrieval (L1)
+    "rank-bm25>=0.2.2",
+
+    # Utilities
+    "python-dotenv>=1.0.1",
+    "tenacity>=9.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.7.0",
+    "ipython>=8.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["theo_copilot*", "intake*", "agent*", "app*", "infra*", "scripts*"]
+exclude = ["data*", "domain_wiki*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]   # line length handled by formatter, not lint
