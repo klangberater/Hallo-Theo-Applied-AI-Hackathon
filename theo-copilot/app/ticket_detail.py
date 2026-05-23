@@ -26,7 +26,8 @@ def render(ticket: dict) -> None:
         with st.container():
             st.markdown(
                 f"<div style='background:#1a1a1a;border:1px solid #2a2a2a;"
-                f"padding:0.8rem;border-radius:8px;white-space:pre-wrap'>"
+                f"padding:0.8rem;border-radius:8px;white-space:pre-wrap;"
+                f"color:#e4e4e7'>"
                 f"{(ticket.get('full_text') or '').strip()}"
                 f"</div>",
                 unsafe_allow_html=True,
@@ -45,8 +46,8 @@ def render(ticket: dict) -> None:
         st.markdown(
             f"<div style='display:flex;justify-content:{align};margin:0.4rem 0'>"
             f"<div style='background:{bg};border:1px solid #2a2a2a;padding:0.6rem 0.8rem;"
-            f"border-radius:10px;max-width:80%;white-space:pre-wrap'>"
-            f"<div style='font-size:0.7rem;color:#71717a;margin-bottom:0.2rem'>"
+            f"border-radius:10px;max-width:80%;white-space:pre-wrap;color:#e4e4e7'>"
+            f"<div style='font-size:0.7rem;color:#a1a1aa;margin-bottom:0.2rem'>"
             f"{m['sender']} · {when}</div>"
             f"{m['body']}"
             f"</div></div>",

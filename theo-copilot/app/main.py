@@ -41,6 +41,7 @@ CSS = """
         border: 1px solid #2a2a2a;
         margin-bottom: 0.4rem;
         background: #141414;
+        color: #f5f5f5;
         cursor: pointer;
     }
     .ticket-row.selected { border-color: #fbbf24; background: #1a1a1a; }
@@ -61,7 +62,9 @@ CSS = """
     .card {
         background: #141414; border: 1px solid #2a2a2a; border-radius: 10px;
         padding: 0.9rem 1rem; margin-bottom: 0.7rem;
+        color: #e4e4e7;
     }
+    .card p, .card li, .card strong, .card em { color: #e4e4e7; }
     .card h4 { margin: 0 0 0.4rem; font-size: 0.85rem; color: #fbbf24;
                text-transform: uppercase; letter-spacing: 0.05em; }
     .card .warn { color: #fca5a5; }
