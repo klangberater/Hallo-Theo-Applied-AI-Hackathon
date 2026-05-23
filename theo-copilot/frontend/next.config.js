@@ -2,8 +2,8 @@
 const nextConfig = {
   // Static export so nginx serves the built files directly. No Node on server.
   output: 'export',
-  // Mounted at /inbox-v2 initially, side-by-side with Streamlit at /inbox.
-  basePath: '/inbox-v2',
+  // Default inbox path. (Streamlit fallback is at /inbox-classic.)
+  basePath: '/inbox',
   trailingSlash: true,
   images: { unoptimized: true },  // export mode doesn't run the Image Optimization API
   // Skip type checking + linting during build for hackathon speed.
