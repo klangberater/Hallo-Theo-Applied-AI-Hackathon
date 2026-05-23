@@ -123,8 +123,8 @@ function AutonomousDone({
 
   return (
     <section className="mt-2">
-      <div className="rounded-md border-l-4 border-teal-600 bg-teal-50 px-5 py-4 mb-4">
-        <p className="font-semibold text-sm text-teal-800 mb-1 flex items-center gap-2">
+      <div className="rounded-md border-l-4 border-green-500 bg-green-50 px-5 py-4 mb-4">
+        <p className="font-semibold text-sm text-green-700 mb-1 flex items-center gap-2">
           <CheckCircle2 size={16} /> Autonom erledigt
         </p>
         <p className="text-sm text-paper-700">{rationale || 'Theo hat dieses Ticket eigenständig bearbeitet.'}</p>
