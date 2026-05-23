@@ -1,0 +1,102 @@
+================================================================
+                  FixDirekt Berlin GmbH
+                Schnell. Direkt. Zuverlässig.
+              ----------------------------------
+              Reinickendorfer Str. 119, 13347 Berlin
+              Tel.: 030 / 7873-XXXX
+              Email: info@fixdirekt-berlin.de
+              USt-IdNr.: DE327XXXXXX
+================================================================
+
+RECHNUNG Nr. 2041
+Rechnungsdatum:  14.11.2025
+Leistungsdatum:  Oktober-November 2025
+Zahlungsziel:    14 Tage, netto
+
+Rechnungsempfänger:
+hallo theo Berlin GmbH
+Saarbrücker Str. 21
+10405 Berlin
+
+Objekt:
+Zossener Str. 47, 10961 Berlin
+DG (leerstehend)
+
+----------------------------------------------------------------
+LEISTUNGEN                                              BETRAG
+----------------------------------------------------------------
+Renovierungsarbeiten Dachgeschoss-Wohnung                1.546,22 €
+  - Arbeitsleistung und Material
+  - kleinere Reparaturen nach Bestand
+  - sonstige Aufwendungen nach Absprache
+                                            zzgl. 19%      293,78 €
+----------------------------------------------------------------
+                                            GESAMT      1.840,00 €
+================================================================
+
+Zahlbar per Überweisung auf:
+  FixDirekt Berlin GmbH
+  Berliner Volksbank
+  IBAN: DE48 1009 0000 XXXX XXXX XX
+  Verwendungszweck: RG 2041 / Zossener 47
+
+================================================================
+
+
+================================================================
+ANALYSE: FixDirekt Berlin GmbH — Rechnungshistorie
+(intern, auto-generiert zur Belegprüfung)
+================================================================
+
+JÜNGSTE 3 RECHNUNGEN (Phase nach Verwaltungsübergang an hallo theo):
+
+Nr.    Datum       Objekt              Brutto     Aufstellung?
+2014   30.09.2025  Zossener — KG/Hof    1.620,00 € NEIN (vage)
+2027   24.10.2025  Zossener — TH/Diele  1.480,00 € NEIN (vage)
+2041   14.11.2025  Zossener — DG        1.840,00 € NEIN (vage)
+                                       -----------
+                                Summe   4.940,00 €
+                                Schnitt 1.646,67 €
+
+----------------------------------------------------------------
+VERGLEICH: ALTE RECHNUNGEN
+(vor hallo theo, von Voreigentümerin Hausverwaltung Schubert)
+----------------------------------------------------------------
+
+Nr.    Datum       Objekt              Brutto     Aufstellung?
+1418   17.01.2024  Zossener — 1. OG      485,00 € JA (Material+Std)
+1402   04.01.2024  Zossener — Keller     312,00 € JA (Material+Std)
+1389   12.12.2023  Zossener — 2.OG       578,00 € JA (Material+Std)
+1271   03.09.2023  Zossener — Hof        425,00 € JA (Material+Std)
+
+Durchschnitt 2023-Anfang 2024:    450,00 €
+Durchschnitt seit Oktober 2025:   1.646,67 €
+                                  +266%
+
+----------------------------------------------------------------
+ZUSÄTZLICHE BEOBACHTUNGEN
+----------------------------------------------------------------
+- FixDirekt wurde von Frau Schubert (Voreigentümerin der
+  Hausverwaltung) ausdrücklich als "vertrauter Handwerker" der
+  Familie Wegener übergeben — keine formelle Ausschreibung,
+  kein Rahmenvertrag
+- Bei den letzten 3 Rechnungen jeweils keine Belegfotos, keine
+  Materiallisten, keine Stundennachweise in den Anhängen
+- Die Wortlaute der Leistungsbeschreibungen sind nahezu
+  identisch: "Arbeitsleistung und Material / kleinere
+  Reparaturen / sonstige Aufwendungen nach Absprache"
+- Keine USt-IdNr.-Prüfung bisher dokumentiert
+- Geschäftsführerinformation öffentlich: GmbH gegründet 2022,
+  Sitz Wedding, keine eigene Werkstatt verifiziert
+
+----------------------------------------------------------------
+EMPFOHLENE MASSNAHME (vom Copiloten vorzuschlagen)
+----------------------------------------------------------------
+- Höfliche, sachliche Anfrage an FixDirekt nach detaillierter
+  Belegaufstellung gemäß üblicher Praxis (Stundennachweis,
+  Materialliste mit Lieferantenrechnungen)
+- KEINE Anschuldigung. Keine Zahlungsverweigerung.
+- Hinweis an Familie Wegener als Eigentümer, dass eine
+  Belegprüfung läuft, ohne präjudizierende Aussagen
+- Bei Nicht-Vorlage in 14 Tagen: erneuter formeller Anruf
+  und Übergabe an buchhalterische Prüfung

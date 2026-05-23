@@ -1,0 +1,104 @@
+================================================================
+NEBENKOSTENABRECHNUNG
+für den Abrechnungszeitraum 01.01.2024 - 31.12.2024
+================================================================
+
+Mieter:           Yusuf und Aylin Demir
+Wohneinheit:      WE 3 rechts
+Objekt:           Zossener Str. 47, 10961 Berlin
+Wohnfläche:       78,40 qm
+Personen:         4
+Abrechnungsdatum: 12.09.2025
+
+Verwalter:        hallo theo Berlin GmbH
+                  i.A. Sarah Weber
+
+----------------------------------------------------------------
+HEIZ- UND WARMWASSERKOSTEN (BetrKV § 7, § 8)
+----------------------------------------------------------------
+Gesamtkosten Heizung/Warmwasser des Hauses 2024:  44.872,40 €
+
+Aufschlüsselung Wohneinheit 3 rechts:
+  Heizkosten verbrauchsabhängig (70%):
+    Heizkostenverteiler-Einheiten WE 3 rechts:        892 HKV-E
+    Heizkostenverteiler-Einheiten gesamt:          12.480 HKV-E
+    Anteil verbrauchsabhängig:           892/12.480 = 7,1474%
+    Anwendbare Kosten (70% v. 38.940,20 €):       27.258,14 €
+    Anteil WE 3 rechts:                            1.948,52 €
+
+  Heizkosten grundkostenanteil (30%, nach Wohnfläche):
+    Wohnfläche WE 3 rechts:                          78,40 qm
+    Wohnfläche gesamt (ohne Gewerbe):             1.140,60 qm
+    Anteil nach Wohnfläche:           78,40/1.140,60 = 6,874%
+    Anwendbare Kosten (30% v. 38.940,20 €):       11.682,06 €
+    Anteil WE 3 rechts:                              803,12 €
+
+  Warmwasserkosten (verbrauchsabhängig):
+    Warmwasserzähler WE 3 rechts:                      48,2 m³
+    Warmwasserzähler gesamt:                         612,8 m³
+    Anteil:                                          7,866%
+    Anwendbare Kosten (Warmwasseranteil):          5.932,20 €
+    Anteil WE 3 rechts:                              466,55 €
+                                                  -----------
+  Zwischensumme Heiz- und Warmwasserkosten:        3.218,19 €
+  (Heizung 2.751,64 € + Warmwasser 466,55 €)
+
+----------------------------------------------------------------
+SONSTIGE BETRIEBSKOSTEN (BetrKV § 2, nach Wohnfläche-Anteil)
+----------------------------------------------------------------
+  Müllgebühren (anteilig)                              198,40 €
+  Wasser/Abwasser (anteilig)                           412,30 €
+  Hausreinigung (Hausmeisterflink)                     264,18 €
+  Gartenpflege                                          82,15 €
+  Schornsteinfeger                                      29,40 €
+  Gebäudeversicherung                                  198,72 €
+  Grundsteuer (anteilig)                               287,40 €
+  Allgemeinstrom (Treppe, Keller)                       89,15 €
+  Aufzugswartung (anteilig)                            154,30 €
+                                                  -----------
+  Zwischensumme sonstige BK:                       1.716,00 €
+
+----------------------------------------------------------------
+GESAMTKOSTEN WE 3 rechts 2024:                    4.934,19 €
+Geleistete Vorauszahlungen 2024 (12× 360,00 €):  -4.320,00 €
+                                                  ===========
+NACHZAHLUNG:                                        614,19 €
+================================================================
+
+
+================================================================
+ANHANG — VERGLEICHSWERTE VORJAHR 2023
+================================================================
+(zur Erleichterung der Mieter)
+
+Heiz- und Warmwasserkosten WE 3 rechts:
+  2024:  3.218,19 €  (+ 38,7%)
+  2023:  2.320,68 €
+
+Heizkostenverteiler-Einheiten WE 3 rechts:
+  2024:  892 HKV-E
+  2023:  908 HKV-E  (-1,8%)
+
+Warmwasserzähler WE 3 rechts:
+  2024:  48,2 m³
+  2023:  47,8 m³   (+0,8%)
+
+Gesamtkosten Heizung/Warmwasser des Hauses:
+  2024:  44.872,40 €
+  2023:  32.408,12 €  (+38,5%)
+
+Gas-Bezugspreis Berliner Stadtwerke (Mittelwert €/kWh):
+  2024:  0,1182 €/kWh
+  2023:  0,0857 €/kWh  (+37,9%)
+
+================================================================
+HINWEIS DES VERWALTERS
+================================================================
+Die deutliche Steigerung der Heiz- und Warmwasserkosten 2024
+gegenüber 2023 ist auf die gestiegenen Bezugspreise für Gas
+zurückzuführen. Der tatsächliche Verbrauch Ihrer Wohnung
+(gemessen über Heizkostenverteiler und Warmwasserzähler) ist
+im Vergleich zum Vorjahr nahezu unverändert geblieben.
+
+Belegeinsicht kann nach § 259 BGB i.V.m. § 556 BGB nach
+Terminvereinbarung in unseren Büroräumen wahrgenommen werden.

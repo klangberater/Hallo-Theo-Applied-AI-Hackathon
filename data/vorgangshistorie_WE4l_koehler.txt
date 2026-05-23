@@ -1,0 +1,111 @@
+================================================================
+VORGANGSHISTORIE — Zossener Str. 47, WE 4 links
+Mieterin: Margarethe Köhler | Mietverhältnis seit: 01.04.1997
+Letzte Aktualisierung: 18.11.2025
+================================================================
+
+------------------------------------------------------------
+VG-2024-0188 | Eröffnet: 12.10.2024 | Abgeschlossen: 13.10.2024
+Kategorie: Heizung | Priorität: Standard
+Beauftragt: Bergmann Heizungstechnik GmbH
+Sachverhalt: "Heizung Wohnzimmer wird nicht richtig warm"
+Lösung: Entlüftung des Heizkörpers, Druckkontrolle am Strang.
+Anlagendruck war zu niedrig, Wasser nachgefüllt.
+Technikernotiz (Kurt Bergmann): "Heizkörper-Thermostat im
+Wohnzimmer reagiert träge. Empfehlung: bei nächster Wartung
+prüfen, ggf. tauschen."
+Kosten: 145,00 € (Pauschale + Anfahrt) | Freigabe: S. Weber
+------------------------------------------------------------
+
+------------------------------------------------------------
+VG-2024-0233 | Eröffnet: 02.12.2024 | Abgeschlossen: 03.12.2024
+Kategorie: Heizung | Priorität: Standard
+Beauftragt: Bergmann Heizungstechnik GmbH
+Sachverhalt: "Heizung Wohnzimmer wieder kalt"
+Lösung: Thermostatkopf demontiert, gereinigt, wieder montiert.
+Funktion temporär wiederhergestellt.
+Technikernotiz: "Thermostat klemmt mechanisch. Mein Vorschlag
+vom Oktober bleibt: Austausch des Ventileinsatzes erforderlich.
+Kosten ca. 280-340 €. Ich kann das nicht jedes Quartal aufs
+Neue mechanisch befreien."
+Kosten: 165,00 € | Freigabe: S. Weber
+NOTIZ S. WEBER: "Angebot für Tausch bei Bergmann anfragen."
+------------------------------------------------------------
+
+------------------------------------------------------------
+VG-2025-0021 | Eröffnet: 22.01.2025 | Abgeschlossen: 23.01.2025
+Kategorie: Heizung | Priorität: DRINGEND
+Beauftragt: Bergmann Heizungstechnik GmbH
+Sachverhalt: "Heizung komplett ausgefallen während Frostperiode"
+Lösung: Ventileinsatz war komplett verklemmt, Notfall-Reinigung
+und temporäre Funktion. Kurt Bergmann hat folgenden Vermerk
+schriftlich abgegeben: "Ich möchte hier formal anmerken, dass
+ich diesen Heizkörper in 4 Monaten zum dritten Mal repariere.
+Die kumulierten Kosten liegen bereits über dem Preis des
+Austauschs, den ich angeboten habe. Ich werde bei der nächsten
+Anforderung schriftlich eine Empfehlung zur Maßnahme aussprechen
+und um Freigabe oder dokumentierten Ablehnungsgrund bitten."
+Kosten: 220,00 € (Notdienst-Aufschlag) | Freigabe: S. Weber
+NOTIZ S. WEBER: "An Eigentümer weitergegeben, warten auf
+Rückmeldung."
+------------------------------------------------------------
+
+------------------------------------------------------------
+VG-2025-0058 | Eröffnet: 09.02.2025 | Abgeschlossen: 12.02.2025
+Kategorie: Mietminderung | Priorität: Hoch
+Sachverhalt: "Mieterin macht 15% Mietminderung für 3 Wochen
+geltend (22.01. – 12.02.2025) wegen wiederholtem Heizungsausfall
+während Frostperiode. Berufung auf BGB § 536, Heizperiode."
+Lösung: Tochter Anja Köhler (Anwältin) hat formell schriftlich
+angemerkt. Wir haben Mietminderung **anerkannt** (15% auf
+Bruttowarmmiete für 3 Wochen = 91,80 €). Auszahlung über
+Verrechnung mit Folgemiete.
+Notiz: "Anerkennen war richtig. Bei Widerspruch wäre Klage
+realistisches Risiko gewesen. Aber: das darf nicht nochmal
+passieren."
+Kosten: 91,80 € Mietminderung | Freigabe: S. Weber + J. Petersen
+------------------------------------------------------------
+
+------------------------------------------------------------
+VG-2025-0142 | Eröffnet: 18.04.2025 | Abgeschlossen: 19.04.2025
+Kategorie: Heizung (Saisonende-Check) | Priorität: Standard
+Beauftragt: Bergmann Heizungstechnik GmbH
+Sachverhalt: Vorbereitung Heizperiodenende, Bergmann hat den
+Heizkörper bei seiner Routinewartung nochmal angesehen.
+Lösung: Keine akute Maßnahme erforderlich (Heizung wird im
+Sommer nicht benötigt). Kurt Bergmann hat sein Angebot
+**formell schriftlich** eingereicht (siehe Angebot
+BH-2025-0044 im Vertragsmodul).
+Kosten: 0,00 € (im Wartungsvertrag enthalten)
+NOTIZ S. WEBER: "Angebot 340 € an Familie Wegener
+weitergeleitet 22.04.2025. Bisher keine Rückmeldung."
+NOTIZ S. WEBER (Nachtrag 15.10.2025): "Erneut nachgefragt
+bei K. Wegener — Antwort: 'Mal sehen, müssen wir nicht
+sofort entscheiden.' Vermerkt."
+------------------------------------------------------------
+
+------------------------------------------------------------
+VG-2025-0XXX | Eröffnet: 17.11.2025 19:43 — Status: OFFEN
+Kategorie: Heizung | Priorität: noch nicht bewertet
+Eingang: E-Mail von Margarethe Köhler
+Sachverhalt: "Heizung Wohnzimmer fällt erneut aus, sechster
+Vorfall in 18 Monaten. Frostperiode steht bevor."
+------------------------------------------------------------
+
+================================================================
+MUSTER-ZUSAMMENFASSUNG (auto-generiert)
+================================================================
+- 5 Heizungs-Vorgänge in 13 Monaten am gleichen Heizkörper
+- Kumulierte Reparaturkosten: 530,00 € (Notfall + Standard)
+- Eine bereits anerkannte Mietminderung: 91,80 €
+- Offenes Bergmann-Angebot zum dauerhaften Tausch: 340,00 €
+  ▶ seit 7 Monaten ohne Freigabe durch Eigentümer
+- Heizperiode aktiv seit 01.10.2025
+- Wettervorhersage 20.-21.11.2025: -2°C bis -3°C
+- Mieterprofil: 68 J., post-OP, Mietverhältnis seit 28 Jahren,
+  rechtlich versierte Tochter, dokumentiert akribisch
+- Rechtsexpositions-Profil: HOCH
+  • Bei 3 Wochen Ausfall + Frost: Mietminderung 15-20% realistisch
+  • BGB § 535/536 + Heizperiode-Spruchpraxis BGH
+  • Bei wiederholter Versäumnis: erhöhtes Klagerisiko
+================================================================

@@ -1,0 +1,77 @@
+================================================================
+INTERNER CHAT (hallo theo internal messaging)
+Konversation: Sarah Weber ↔ Jonas Petersen (Team Lead Berlin)
+================================================================
+
+[Freitag, 14.11.2025, 16:22]
+Sarah Weber:
+Jonas, kurze Sache vor dem Wochenende — Heizperiode läuft jetzt
+seit 6 Wochen und ich habe ein paar Objekte mit erwartbaren
+Problemfällen. Bei Zossener 47 z.B. der Heizkörper bei Frau
+Köhler. Du erinnerst dich, das war im Januar mit der
+Mietminderung.
+
+Jonas Petersen:
+Ja klar.
+
+Sarah Weber:
+Eigentümer (Familie Wegener) hat das Bergmann-Angebot für den
+Tausch immer noch nicht freigegeben, obwohl ich zweimal nach-
+gefasst habe. Ich sehe schon kommen, dass sie wieder ausfällt
+und wir am Wochenende rennen müssen.
+
+Jonas Petersen:
+Was kostet der Tausch?
+
+Sarah Weber:
+Ca. 370 € brutto.
+
+Jonas Petersen:
+Sarah ehrlich — wenn das ausfällt und sie ist 68, alleine,
+post-OP und hat schon einmal gemindert, dann ist das ein
+Risiko. Lass uns nicht jeden Cent zweimal umdrehen wenn der
+Eigentümer schläft.
+
+Wenn sie sich nochmal meldet: für so etwas hast du bis 500 €
+Vorabgenehmigung von mir. Beauftrage und dokumentier es,
+ich klär das mit Wegener im Nachgang wenn nötig. Das machen
+wir bei vulnerablen Mietern und chronischen Mängeln so. Die
+Mietminderung von 91 € ist auch nicht umsonst und so eine
+Sache stresst dich auch jedes Mal — also los.
+
+Sarah Weber:
+Okay, danke. Notiere ich.
+
+Jonas Petersen:
+👍 Schönes Wochenende.
+
+----------------------------------------------------------------
+
+[Montag, 17.11.2025, 16:55]
+Jonas Petersen:
+Hey, der Vermieter-Bericht für Wegener für die EV ist deine
+Priorität diese Woche. Du musst den bis Freitag rausschicken.
+Brauchst du Unterstützung bei den NK-Posten?
+
+Sarah Weber:
+Sollte gehen. Die Demir-Beanstandung muss aber auch raus,
+Frist ist Anfang Dezember.
+
+Jonas Petersen:
+Verstanden. Wenn was klemmt sag Bescheid.
+
+[gelesen 17:30, keine Antwort von Sarah]
+================================================================
+
+KONTEXT FÜR DEN KI-COPILOTEN:
+- Jonas' Nachricht vom 14.11. enthält eine **explizite Vorab-
+  Genehmigung bis 500 €** für genau den Fall, der am 17.11.
+  abends eingetreten ist.
+- Sarah hat diese Nachricht zwar gelesen, aber im Wochenende
+  und der Montags-Hektik nicht aktiv darauf zurückgegriffen.
+- Wenn Frau Köhlers E-Mail eintrifft, sollte der Copilot diese
+  vorhandene Genehmigung *automatisch* herausziehen und in der
+  Empfehlung referenzieren.
+- DAS ist der "Wow"-Moment: Der Copilot löst eine Blockade auf,
+  die nicht in den Vorgangsdaten steht, sondern in einem
+  beiläufigen Slack-Thread vom letzten Freitag.
