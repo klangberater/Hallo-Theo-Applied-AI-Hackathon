@@ -135,6 +135,23 @@ class SuggestedAction(BaseModel):
     )
     source_citations: list[SourceCitation] = Field(default_factory=list)
     confidence: Literal["high", "medium", "low"] = "medium"
+    bundle_id: str | None = Field(
+        default=None,
+        description="When the action is part of a bundle_approve grouping, all actions "
+                    "sharing the same bundle_id execute atomically on one approval. "
+                    "None = standalone action.",
+    )
+    bundle_order: int = Field(
+        default=0,
+        description="Execution order within the bundle. send_whatsapp_reply / "
+                    "send_email_reply MUST always be the highest (last) so a DB "
+                    "rollback never strands an irreversible send.",
+    )
+    executed_at: str | None = Field(
+        default=None,
+        description="ISO timestamp if the action has already been executed "
+                    "(autonomous_done mode). Null otherwise.",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -161,6 +178,28 @@ class EnrichmentPayload(BaseModel):
     weather: WeatherCard | None = None
     legal_context: list[LegalRef] = Field(default_factory=list)
     suggested_actions: list[SuggestedAction] = Field(default_factory=list)
+
+    # ---- Autonomy ---------------------------------------------------------
+
+    autonomy_mode: Literal["autonomous_done", "bundle_approve", "propose"] = Field(
+        default="propose",
+        description=(
+            "How much agency Theo claims for this ticket.\n"
+            "- 'autonomous_done': all actions already executed; trace visible. "
+            "Allowed ONLY if every action has cost=0 (or covered by a standing "
+            "pre-approval), no vulnerable-tenant flags, no legal history, and "
+            "category precedent exists.\n"
+            "- 'bundle_approve': Sarah approves once, all actions execute "
+            "atomically. Use when actions are coherent and pre-approval covers "
+            "any cost.\n"
+            "- 'propose': default; each action approved individually."
+        ),
+    )
+    autonomy_rationale: str = Field(
+        default="",
+        description="One paragraph explaining the autonomy_mode choice — which "
+                    "guardrails fired (or didn't). Shown to Sarah as audit trail.",
+    )
 
 
 # Convenience: generate the JSON schema once — used in the system prompt so
