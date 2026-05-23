@@ -50,8 +50,16 @@ async def list_tickets(limit: int = 50) -> list[dict]:
             LEFT JOIN theo.channel_threads ct ON ct.id = t.source_thread_id
             LEFT JOIN theo.tenants tn_ct ON tn_ct.id = ct.tenant_id
             ORDER BY
+                -- 1. autonomous_done tickets at the very top (already handled)
                 CASE WHEN t.enrichment->>'autonomy_mode' = 'autonomous_done'
                      THEN 0 ELSE 1 END,
+                -- 2. then by priority — DRINGEND first, then Hoch, then Standard
+                CASE t.priority
+                    WHEN 'DRINGEND' THEN 0
+                    WHEN 'Hoch'     THEN 1
+                    ELSE 2
+                END,
+                -- 3. finally by recency
                 t.opened_at DESC NULLS LAST
             LIMIT $1
             """,

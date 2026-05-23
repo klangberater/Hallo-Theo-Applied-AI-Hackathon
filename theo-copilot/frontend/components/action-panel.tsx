@@ -35,17 +35,91 @@ export function ActionPanel({
 // autonomous_done
 // ---------------------------------------------------------------------------
 
+// Map a trace event to a German sentence. Falls back to "schritt unbekannt"
+// if we don't have a translation — those will still show in the raw expander.
+function humanizeTrace(e: TraceEvent): string | null {
+  const p = e.payload || {};
+  switch (e.kind) {
+    case 'intent_classification':
+      return `Anliegen erkannt als „${p.intent}" (Dringlichkeit: ${p.urgency}, Konfidenz ${Math.round((p.confidence || 0) * 100)}%).`;
+    case 'tool_use': {
+      const name = p.name || '';
+      const args = p.args || {};
+      if (name === 'get_tenant' || name === 'get_tenant_by_phone')
+        return `Mieter:in nachgeschlagen.`;
+      if (name === 'get_unit')
+        return `Wohneinheit nachgeschlagen.`;
+      if (name === 'get_lease')
+        return `Mietvertrag eingesehen.`;
+      if (name === 'list_tickets')
+        return `Vorgangshistorie geprüft (Einheit ${args.unit_id || '?'}).`;
+      if (name === 'get_ticket')
+        return `Einzelnen Vorgang vertieft eingesehen.`;
+      if (name === 'list_invoices')
+        return `Rechnungen geprüft.`;
+      if (name === 'get_nka')
+        return `Nebenkostenabrechnung eingesehen.`;
+      if (name === 'get_open_offers')
+        return `Offene Vendor-Angebote geprüft.`;
+      if (name === 'get_vendor')
+        return `Handwerker-Stammdaten geprüft.`;
+      if (name === 'list_internal_chat')
+        return `Internen Chat (Sarah ↔ Jonas) eingesehen.`;
+      if (name === 'query_temporal_memory')
+        return `Temporales Gedächtnis abgefragt: „${args.query || ''}".`;
+      if (name === 'get_entity_timeline')
+        return `Zeitachse einer Entität abgerufen.`;
+      if (name === 'search_wiki')
+        return `Wissensbasis durchsucht: „${args.query || ''}".`;
+      if (name === 'read_wiki_page')
+        return `Wiki-Seite gelesen: ${args.path || '?'}.`;
+      if (name === 'get_weather_forecast')
+        return `Wettervorhersage abgerufen (${args.location || '?'}).`;
+      if (name === 'send_whatsapp_reply')
+        return `WhatsApp-Antwort gesendet.`;
+      if (name === 'send_email_reply')
+        return `E-Mail-Antwort gesendet: „${args.subject || ''}".`;
+      if (name === 'dispatch_vendor')
+        return `Handwerker beauftragt.`;
+      if (name === 'approve_offer')
+        return `Angebot freigegeben.`;
+      return `Werkzeug aufgerufen: ${name}.`;
+    }
+    case 'stubbed_tool':
+      return `Hinweis: Werkzeug „${p.name}" mit Demodaten beantwortet.`;
+    case 'enrichment_payload':
+      if (p.autonomy_mode === 'autonomous_done')
+        return `Entscheidung: autonom ausführen — alle Sicherheits-Schranken erfüllt.`;
+      if (p.autonomy_mode === 'bundle_approve')
+        return `Entscheidung: Bündel-Freigabe vorschlagen.`;
+      return `Anreicherungs-Paket erstellt.`;
+    case 'llm_call_started':
+    case 'llm_call_completed':
+    case 'tool_result':
+      return null;   // background noise; available via raw view
+    case 'error':
+      return `Fehler aufgetreten — siehe Detailansicht.`;
+    default:
+      return null;
+  }
+}
+
 function AutonomousDone({
   ticket, actions, rationale,
 }: { ticket: TicketDetail; actions: SuggestedAction[]; rationale: string }) {
-  const [showTrace, setShowTrace] = useState(false);
+  const [showSteps, setShowSteps] = useState(false);
+  const [showRaw, setShowRaw] = useState(false);
   const [trace, setTrace] = useState<TraceEvent[] | null>(null);
 
   useEffect(() => {
-    if (showTrace && trace === null) {
+    if ((showSteps || showRaw) && trace === null) {
       api.getTrace(ticket.id).then(setTrace).catch(() => setTrace([]));
     }
-  }, [showTrace, ticket.id, trace]);
+  }, [showSteps, showRaw, ticket.id, trace]);
+
+  const humanSteps = trace
+    ? trace.map((e) => ({ e, text: humanizeTrace(e) })).filter((x) => x.text !== null)
+    : null;
 
   return (
     <section className="mt-2">
@@ -78,19 +152,38 @@ function AutonomousDone({
       </div>
 
       <button
-        onClick={() => setShowTrace((v) => !v)}
-        className="mt-4 flex items-center gap-2 text-sm font-medium text-paper-600 hover:text-paper-900"
+        onClick={() => setShowSteps((v) => !v)}
+        className="mt-4 flex items-center gap-2 text-sm font-medium text-paper-700 hover:text-paper-900"
       >
-        {showTrace ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        Was Theo gemacht hat ({trace ? trace.length : '…'} Schritte)
+        {showSteps ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        Wie Theo vorgegangen ist
       </button>
-      {showTrace && trace && (
-        <div className="mt-3 rounded-lg border border-paper-200 bg-white p-3 max-h-80 overflow-y-auto">
+      {showSteps && humanSteps && (
+        <ol className="mt-3 rounded-lg border border-paper-200 bg-white p-4 space-y-2 list-decimal list-inside">
+          {humanSteps.map(({ e, text }, i) => (
+            <li key={i} className="text-sm text-paper-900 leading-snug">{text}</li>
+          ))}
+          {humanSteps.length === 0 && (
+            <p className="text-sm text-paper-500 italic">Keine Übersicht verfügbar.</p>
+          )}
+        </ol>
+      )}
+
+      {showSteps && (
+        <button
+          onClick={() => setShowRaw((v) => !v)}
+          className="mt-2 flex items-center gap-2 text-xs font-medium text-paper-500 hover:text-paper-700"
+        >
+          {showRaw ? '▾' : '▸'} Technische Details
+        </button>
+      )}
+      {showRaw && trace && (
+        <div className="mt-2 rounded-lg border border-paper-200 bg-paper-50 p-3 max-h-80 overflow-y-auto">
           {trace.map((e, i) => (
             <div key={i} className="font-mono text-xs py-1.5 border-b border-paper-100 last:border-b-0">
               <span className="text-paper-500">{e.created_at?.slice(11, 19)}</span>{' '}
               <strong className="text-teal-700">{e.kind}</strong>{' '}
-              <span className="text-paper-700">{JSON.stringify(e.payload).slice(0, 160)}</span>
+              <span className="text-paper-700">{JSON.stringify(e.payload).slice(0, 200)}</span>
             </div>
           ))}
         </div>
