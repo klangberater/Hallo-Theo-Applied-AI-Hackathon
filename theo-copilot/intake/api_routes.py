@@ -18,7 +18,7 @@ import httpx
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
-from infra.db import connect
+from infra.db import DONE_GRACE_HOURS, connect
 
 log = logging.getLogger("api")
 
@@ -31,52 +31,105 @@ router = APIRouter()  # nginx strips '/api/' before forwarding
 
 
 @router.get("/tickets")
-async def list_tickets(limit: int = 50, include_closed: bool = False) -> list[dict]:
-    """Inbox list. Joins through channel_thread + lease to resolve the sender.
+async def list_tickets(
+    view: str = "inbox",
+    limit: int = 50,
+    search: str | None = None,
+) -> list[dict]:
+    """Inbox or archive list. Joins through channel_thread + lease to
+    resolve the sender.
 
-    By default hides status='closed' tickets *except* those Theo handled
-    autonomously (which are 'closed' from the agent's POV but Sarah still
-    needs to see them as "review-only" rows at the top). Pass
-    include_closed=true to see the full historical archive.
+    view='inbox'   → open + recently-done (within DONE_GRACE_HOURS)
+    view='archive' → done >= grace ago, OR legacy status='closed'
     """
-    closed_filter = ""
-    if not include_closed:
-        closed_filter = (
-            "WHERE t.status != 'closed' "
+    if view == "archive":
+        where = (
+            "WHERE (t.done_at IS NOT NULL "
+            "       AND t.done_at < now() - (INTERVAL '1 hour' * $1)) "
+            "   OR COALESCE(t.status, '') = 'closed' "
+        )
+        order = (
+            "ORDER BY COALESCE(t.done_at, t.opened_at) DESC NULLS LAST"
+        )
+    else:
+        where = (
+            "WHERE (t.done_at IS NULL "
+            "        AND COALESCE(t.status, '') != 'closed') "
+            "   OR (t.done_at IS NOT NULL "
+            "        AND t.done_at >= now() - (INTERVAL '1 hour' * $1)) "
             "   OR t.enrichment->>'autonomy_mode' = 'autonomous_done' "
         )
+        order = (
+            "ORDER BY "
+            "  CASE WHEN t.done_at IS NULL THEN 0 ELSE 1 END, "
+            "  CASE WHEN t.enrichment->>'autonomy_mode' = 'autonomous_done' "
+            "       THEN 0 ELSE 1 END, "
+            "  CASE t.priority "
+            "    WHEN 'DRINGEND' THEN 0 "
+            "    WHEN 'Wichtig'  THEN 1 "
+            "    WHEN 'Hoch'     THEN 1 "
+            "    ELSE 2 END, "
+            "  t.opened_at DESC NULLS LAST"
+        )
+
+    params: list = [DONE_GRACE_HOURS]
+    if search:
+        where += (
+            " AND (LOWER(COALESCE(tn_ct.name, tn_lease.name, '')) LIKE $2 "
+            "   OR LOWER(COALESCE(u.label, '')) LIKE $2 "
+            "   OR LOWER(COALESCE(t.classified_intent, '')) LIKE $2 "
+            "   OR LOWER(COALESCE(t.full_text, '')) LIKE $2 "
+            "   OR LOWER(COALESCE(t.resolution_note, '')) LIKE $2)"
+        )
+        params.append(f"%{search.lower()}%")
+
+    limit_placeholder = f"${len(params) + 1}"
+    params.append(limit)
+
     async with connect() as conn:
         rows = await conn.fetch(
             f"""
             SELECT t.id, t.unit_id, t.category, t.priority, t.status, t.opened_at,
                    t.classified_intent, t.full_text,
+                   t.done_at, t.done_by, t.resolution_note,
                    t.enrichment->'prior_incidents'->>'count' AS pattern_count,
                    t.enrichment->>'autonomy_mode' AS autonomy_mode,
                    u.label AS unit_label,
                    COALESCE(tn_ct.name, tn_lease.name, 'unknown') AS tenant_name,
-                   ct.channel
+                   ct.channel,
+                   CASE
+                     WHEN t.done_at IS NULL
+                          AND COALESCE(t.status, '') != 'closed'
+                       THEN 'open'
+                     WHEN t.done_at IS NOT NULL
+                          AND t.done_at >= now() - (INTERVAL '1 hour' * $1)
+                       THEN 'done'
+                     ELSE 'archived'
+                   END AS derived_state
             FROM theo.tickets t
             LEFT JOIN theo.units u ON u.id = t.unit_id
             LEFT JOIN theo.leases l ON l.unit_id = u.id AND l.status = 'active'
             LEFT JOIN theo.tenants tn_lease ON tn_lease.id = l.tenant_id
             LEFT JOIN theo.channel_threads ct ON ct.id = t.source_thread_id
             LEFT JOIN theo.tenants tn_ct ON tn_ct.id = ct.tenant_id
-            {closed_filter}
-            ORDER BY
-                CASE WHEN t.enrichment->>'autonomy_mode' = 'autonomous_done'
-                     THEN 0 ELSE 1 END,
-                CASE t.priority
-                    WHEN 'DRINGEND' THEN 0
-                    WHEN 'Wichtig'  THEN 1
-                    WHEN 'Hoch'     THEN 1   -- legacy alias for tickets predating the rename
-                    ELSE 2
-                END,
-                t.opened_at DESC NULLS LAST
-            LIMIT $1
+            {where}
+            {order}
+            LIMIT {limit_placeholder}
             """,
-            limit,
+            *params,
         )
     return [dict(r) for r in rows]
+
+
+@router.get("/tickets/open-count")
+async def open_count() -> dict:
+    """Drives the 'Posteingang · N' tab badge."""
+    async with connect() as conn:
+        row = await conn.fetchrow(
+            "SELECT COUNT(*)::int AS n FROM theo.tickets "
+            "WHERE done_at IS NULL AND COALESCE(status, '') != 'closed'"
+        )
+    return {"count": int(row["n"]) if row else 0}
 
 
 @router.get("/tickets/{ticket_id}")
@@ -93,7 +146,16 @@ async def get_ticket(ticket_id: str) -> dict:
                    COALESCE(tn_ct.email, tn_lease.email) AS tenant_email,
                    COALESCE(tn_ct.phone, tn_lease.phone) AS tenant_phone,
                    COALESCE(tn_ct.metadata, tn_lease.metadata) AS tenant_metadata,
-                   l.rent_cold AS lease_rent_cold, l.start_date AS lease_start
+                   l.rent_cold AS lease_rent_cold, l.start_date AS lease_start,
+                   CASE
+                     WHEN t.done_at IS NULL
+                          AND COALESCE(t.status, '') != 'closed'
+                       THEN 'open'
+                     WHEN t.done_at IS NOT NULL
+                          AND t.done_at >= now() - (INTERVAL '1 hour' * $1)
+                       THEN 'done'
+                     ELSE 'archived'
+                   END AS derived_state
             FROM theo.tickets t
             LEFT JOIN theo.units u ON u.id = t.unit_id
             LEFT JOIN theo.properties p ON p.id = u.property_id
@@ -101,13 +163,74 @@ async def get_ticket(ticket_id: str) -> dict:
             LEFT JOIN theo.tenants tn_lease ON tn_lease.id = l.tenant_id
             LEFT JOIN theo.channel_threads ct ON ct.id = t.source_thread_id
             LEFT JOIN theo.tenants tn_ct ON tn_ct.id = ct.tenant_id
-            WHERE t.id = $1
+            WHERE t.id = $2
             """,
+            DONE_GRACE_HOURS,
             ticket_id,
         )
     if row is None:
         raise HTTPException(status_code=404, detail="ticket not found")
     return dict(row)
+
+
+class MarkDoneRequest(BaseModel):
+    resolution_note: str | None = None
+
+
+@router.post("/tickets/{ticket_id}/mark-done")
+async def mark_done(
+    ticket_id: str, req: MarkDoneRequest | None = None,
+) -> dict:
+    """Close the conversation. Ticket stays visible in the inbox for
+    DONE_GRACE_HOURS, then becomes archived."""
+    note = (req.resolution_note or None) if req else None
+    done_by = "Sarah Weber"  # single-user demo; no auth gating
+    async with connect() as conn:
+        async with conn.transaction():
+            result = await conn.execute(
+                "UPDATE theo.tickets "
+                "SET done_at = now(), done_by = $1, resolution_note = $2 "
+                "WHERE id = $3",
+                done_by, note, ticket_id,
+            )
+            if result.endswith(" 0"):
+                raise HTTPException(404, "ticket not found")
+            await conn.execute(
+                "INSERT INTO theo.trace_events "
+                "(ticket_id, step, kind, payload, created_at) VALUES ($1, "
+                "  (SELECT COALESCE(MAX(step), 0) + 1 "
+                "   FROM theo.trace_events WHERE ticket_id = $1), "
+                "  'marked_done', $2::jsonb, now())",
+                ticket_id,
+                json.dumps({"by": done_by, "resolution_note": note or ""}),
+            )
+    return {"ok": True, "ticket_id": ticket_id, "state": "done"}
+
+
+@router.post("/tickets/{ticket_id}/reopen")
+async def reopen(ticket_id: str) -> dict:
+    """Return a Done or Archived ticket to the Open state."""
+    reopened_by = "Sarah Weber"
+    async with connect() as conn:
+        async with conn.transaction():
+            result = await conn.execute(
+                "UPDATE theo.tickets "
+                "SET done_at = NULL, done_by = NULL, resolution_note = NULL "
+                "WHERE id = $1",
+                ticket_id,
+            )
+            if result.endswith(" 0"):
+                raise HTTPException(404, "ticket not found")
+            await conn.execute(
+                "INSERT INTO theo.trace_events "
+                "(ticket_id, step, kind, payload, created_at) VALUES ($1, "
+                "  (SELECT COALESCE(MAX(step), 0) + 1 "
+                "   FROM theo.trace_events WHERE ticket_id = $1), "
+                "  'reopened', $2::jsonb, now())",
+                ticket_id,
+                json.dumps({"by": reopened_by}),
+            )
+    return {"ok": True, "ticket_id": ticket_id, "state": "open"}
 
 
 @router.get("/tickets/{ticket_id}/trace")
@@ -314,6 +437,13 @@ async def _execute_whatsapp_send(thread_id: str | None, payload: dict) -> dict:
         )
         await conn.execute(
             "UPDATE theo.channel_threads SET last_message_at=now() WHERE id=$1",
+            thread_id,
+        )
+        # Spec §6.2: replying to a Done ticket implicitly reopens it.
+        await conn.execute(
+            "UPDATE theo.tickets "
+            "SET done_at = NULL, done_by = NULL, resolution_note = NULL "
+            "WHERE source_thread_id = $1 AND done_at IS NOT NULL",
             thread_id,
         )
 

@@ -83,7 +83,27 @@ async def get_pool() -> asyncpg.Pool:
             init=_init_connection,
             command_timeout=30,
         )
+        # Idempotent schema upgrade for the Mark-as-Done / Archive feature.
+        # Mirrors infra/migrations/002_archive.sql. Runs once per process so
+        # the demo doesn't depend on a manual migration step.
+        async with _pool.acquire() as conn:
+            await conn.execute(
+                """
+                ALTER TABLE theo.tickets
+                    ADD COLUMN IF NOT EXISTS done_at         TIMESTAMPTZ,
+                    ADD COLUMN IF NOT EXISTS done_by         TEXT,
+                    ADD COLUMN IF NOT EXISTS resolution_note TEXT
+                """
+            )
+            await conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_tickets_done_at "
+                "ON theo.tickets(done_at) WHERE done_at IS NOT NULL"
+            )
     return _pool
+
+
+# How long a ticket lingers in the inbox after being marked done.
+DONE_GRACE_HOURS = 72
 
 
 @asynccontextmanager

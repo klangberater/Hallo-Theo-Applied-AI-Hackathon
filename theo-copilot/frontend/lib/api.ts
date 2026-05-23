@@ -2,6 +2,8 @@
 // that prefix before forwarding to :8002, so the browser path /api/tickets
 // reaches the backend's /tickets handler.
 
+export type DerivedState = 'open' | 'done' | 'archived';
+
 export interface Ticket {
   id: string;
   unit_id: string | null;
@@ -16,6 +18,11 @@ export interface Ticket {
   unit_label: string | null;
   tenant_name: string;
   channel: string | null;
+  // Mark-as-Done & Archive feature.
+  done_at: string | null;
+  done_by: string | null;
+  resolution_note: string | null;
+  derived_state: DerivedState;
 }
 
 export interface SourceCitation {
@@ -108,8 +115,19 @@ async function post<T>(path: string, body?: any): Promise<T> {
   return (await r.json()) as T;
 }
 
+function qs(params: Record<string, string | number | undefined | null>): string {
+  const u = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && v !== '') u.set(k, String(v));
+  }
+  const s = u.toString();
+  return s ? `?${s}` : '';
+}
+
 export const api = {
-  listTickets: () => get<Ticket[]>('/tickets'),
+  listTickets: (view: 'inbox' | 'archive' = 'inbox', search?: string) =>
+    get<Ticket[]>(`/tickets${qs({ view, search })}`),
+  countOpen: () => get<{ count: number }>('/tickets/open-count'),
   getTicket: (id: string) => get<TicketDetail>(`/tickets/${id}`),
   getThread: (id: string) => get<ThreadMessage[]>(`/tickets/${id}/thread`),
   getTrace:  (id: string) => get<TraceEvent[]>(`/tickets/${id}/trace`),
@@ -123,6 +141,16 @@ export const api = {
     post<{ ok: boolean; executed: number; warnings: string[]; error?: string }>(
       `/tickets/${id}/bundle/execute`,
       bodyOverride !== undefined ? { body_override: bodyOverride } : undefined,
+    ),
+
+  markDone: (id: string, resolutionNote?: string) =>
+    post<{ ok: boolean; ticket_id: string; state: DerivedState }>(
+      `/tickets/${id}/mark-done`,
+      resolutionNote ? { resolution_note: resolutionNote } : {},
+    ),
+  reopen: (id: string) =>
+    post<{ ok: boolean; ticket_id: string; state: DerivedState }>(
+      `/tickets/${id}/reopen`,
     ),
 
   fireKoehler: () => post<any>('/demo/fire/koehler'),
