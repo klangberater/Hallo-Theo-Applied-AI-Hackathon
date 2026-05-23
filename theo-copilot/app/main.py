@@ -580,121 +580,57 @@ CSS = """
   }
 
   /* INDEPENDENT PANE SCROLLING ----------------------------------------
-     Lock the whole app to viewport height so the page itself can't
-     scroll; the inbox list, ticket detail, and context panes each
-     handle their own scroll. */
-  html, body {
-    height: 100vh !important;
-    max-height: 100vh !important;
-    overflow: hidden !important;
-  }
-  [data-testid="stAppViewContainer"] {
-    height: 100vh !important;
-    max-height: 100vh !important;
-    overflow: hidden !important;
-  }
+     Lock the outer page to viewport height. Each leaf pane (inbox,
+     detail, context) is wrapped in its own st.container(key="scroll-X")
+     and gets a fixed viewport-relative height with overflow-y: auto,
+     so each scrolls independently. */
+  html, body,
+  [data-testid="stAppViewContainer"],
   [data-testid="stMain"] {
     height: 100vh !important;
     max-height: 100vh !important;
     overflow: hidden !important;
   }
-  /* The block-container becomes a flex column: header on top,
-     main-layout fills the rest. */
   .block-container,
   [data-testid="stMainBlockContainer"] {
     height: 100vh !important;
     max-height: 100vh !important;
     overflow: hidden !important;
-    display: flex !important;
-    flex-direction: column !important;
     padding-bottom: var(--space-3) !important;
   }
-  /* main-layout takes remaining space below the header. */
-  .st-key-main-layout {
-    flex: 1 1 0% !important;
-    min-height: 0 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    overflow: hidden !important;
-  }
-  /* Outer horizontal block (col_list + col_detail) — explicit path so
-     we don't accidentally match action_panel's button columns deeper. */
-  .st-key-main-layout > [data-testid="stHorizontalBlock"] {
-    flex: 1 1 0% !important;
-    min-height: 0 !important;
-    align-items: stretch !important;
-    height: 100% !important;
-  }
-  /* Outer columns: col_list (scrolls) and col_detail (hidden — its
-     subpanes scroll instead). */
-  .st-key-main-layout
-      > [data-testid="stHorizontalBlock"]
-      > [data-testid="stColumn"] {
-    height: 100% !important;
-    max-height: 100% !important;
-    min-height: 0 !important;
+  /* Each scroll pane — viewport height minus the brand-row header
+     (~110-130px). Use viewport units directly so no Streamlit
+     flex/height chain has to line up. */
+  .st-key-scroll-inbox,
+  .st-key-scroll-detail,
+  .st-key-scroll-context {
+    height: calc(100vh - 130px) !important;
+    max-height: calc(100vh - 130px) !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
-  }
-  /* col_detail wraps a nested horizontal block — hide its own overflow
-     so the inner sub_detail / sub_context handle scroll, not col_detail. */
-  .st-key-main-layout
-      > [data-testid="stHorizontalBlock"]
-      > [data-testid="stColumn"]:has(
-        > [data-testid="stVerticalBlock"]
-        > [data-testid="stHorizontalBlock"]
-      ) {
-    overflow: hidden !important;
-  }
-  /* col_detail's vertical-block wrapper: stretch so the inner
-     horizontal block can take 100% height. */
-  .st-key-main-layout
-      > [data-testid="stHorizontalBlock"]
-      > [data-testid="stColumn"]
-      > [data-testid="stVerticalBlock"] {
-    height: 100% !important;
-    min-height: 0 !important;
-    display: flex !important;
-    flex-direction: column !important;
-  }
-  /* Nested horizontal block: sub_detail + sub_context. */
-  .st-key-main-layout
-      > [data-testid="stHorizontalBlock"]
-      > [data-testid="stColumn"]
-      > [data-testid="stVerticalBlock"]
-      > [data-testid="stHorizontalBlock"] {
-    flex: 1 1 0% !important;
-    min-height: 0 !important;
-    align-items: stretch !important;
-    height: 100% !important;
-  }
-  /* Subpane columns: sub_detail (conversation + actions) and
-     sub_context (enrichment cards) each scroll on their own. */
-  .st-key-main-layout
-      > [data-testid="stHorizontalBlock"]
-      > [data-testid="stColumn"]
-      > [data-testid="stVerticalBlock"]
-      > [data-testid="stHorizontalBlock"]
-      > [data-testid="stColumn"] {
-    height: 100% !important;
-    max-height: 100% !important;
-    min-height: 0 !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
+    padding-right: var(--space-2);
   }
   /* Thin paper-toned scrollbars. */
-  .st-key-main-layout [data-testid="stColumn"] {
+  .st-key-scroll-inbox,
+  .st-key-scroll-detail,
+  .st-key-scroll-context {
     scrollbar-width: thin;
     scrollbar-color: var(--paper-300) transparent;
   }
-  .st-key-main-layout [data-testid="stColumn"]::-webkit-scrollbar {
+  .st-key-scroll-inbox::-webkit-scrollbar,
+  .st-key-scroll-detail::-webkit-scrollbar,
+  .st-key-scroll-context::-webkit-scrollbar {
     width: 6px;
   }
-  .st-key-main-layout [data-testid="stColumn"]::-webkit-scrollbar-thumb {
+  .st-key-scroll-inbox::-webkit-scrollbar-thumb,
+  .st-key-scroll-detail::-webkit-scrollbar-thumb,
+  .st-key-scroll-context::-webkit-scrollbar-thumb {
     background: var(--paper-300);
     border-radius: 3px;
   }
-  .st-key-main-layout [data-testid="stColumn"]::-webkit-scrollbar-track {
+  .st-key-scroll-inbox::-webkit-scrollbar-track,
+  .st-key-scroll-detail::-webkit-scrollbar-track,
+  .st-key-scroll-context::-webkit-scrollbar-track {
     background: transparent;
   }
 </style>
@@ -749,15 +685,16 @@ with st.container(key="main-layout"):
     col_list, col_detail = st.columns([1, 3], gap="medium")
 
     with col_list:
-        st.markdown(
-            "<p class='section-label'>Inbox</p>", unsafe_allow_html=True
-        )
-        tickets = fetch_ticket_list()
-        inbox.render(
-            tickets,
-            st.session_state.selected_ticket_id,
-            st.session_state.opened_ticket_ids,
-        )
+        with st.container(key="scroll-inbox"):
+            st.markdown(
+                "<p class='section-label'>Inbox</p>", unsafe_allow_html=True
+            )
+            tickets = fetch_ticket_list()
+            inbox.render(
+                tickets,
+                st.session_state.selected_ticket_id,
+                st.session_state.opened_ticket_ids,
+            )
 
     if st.session_state.selected_ticket_id:
         ticket = fetch_ticket(st.session_state.selected_ticket_id)
@@ -768,14 +705,16 @@ with st.container(key="main-layout"):
             with col_detail:
                 sub_detail, sub_context = st.columns([1.8, 1], gap="medium")
                 with sub_detail:
-                    ticket_detail.render(ticket)
-                    action_panel.render(ticket)
+                    with st.container(key="scroll-detail"):
+                        ticket_detail.render(ticket)
+                        action_panel.render(ticket)
                 with sub_context:
-                    st.markdown(
-                        "<p class='section-label'>Kontext</p>",
-                        unsafe_allow_html=True,
-                    )
-                    enrichment_cards.render(ticket)
+                    with st.container(key="scroll-context"):
+                        st.markdown(
+                            "<p class='section-label'>Kontext</p>",
+                            unsafe_allow_html=True,
+                        )
+                        enrichment_cards.render(ticket)
     else:
         with col_detail:
             st.markdown(
