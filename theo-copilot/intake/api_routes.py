@@ -67,7 +67,8 @@ async def list_tickets(limit: int = 50, include_closed: bool = False) -> list[di
                      THEN 0 ELSE 1 END,
                 CASE t.priority
                     WHEN 'DRINGEND' THEN 0
-                    WHEN 'Hoch'     THEN 1
+                    WHEN 'Wichtig'  THEN 1
+                    WHEN 'Hoch'     THEN 1   -- legacy alias for tickets predating the rename
                     ELSE 2
                 END,
                 t.opened_at DESC NULLS LAST

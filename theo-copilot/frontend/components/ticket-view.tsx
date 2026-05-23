@@ -12,10 +12,10 @@ function fmt(iso: string): string {
 
 function PriorityChip({ priority }: { priority: string | null }) {
   if (priority === 'DRINGEND')
-    return <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-semibold uppercase text-red-700">Dringend</span>;
-  if (priority === 'Hoch')
-    return <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold uppercase text-amber-700">Hoch</span>;
-  return <span className="inline-flex rounded-full border border-paper-200 bg-paper-100 px-2 py-0.5 text-[11px] font-semibold uppercase text-paper-700">Standard</span>;
+    return <span className="inline-flex whitespace-nowrap rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-semibold uppercase text-red-700">Dringend</span>;
+  if (priority === 'Hoch' || priority === 'Wichtig')
+    return <span className="inline-flex whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold uppercase text-amber-700">Wichtig</span>;
+  return <span className="inline-flex whitespace-nowrap rounded-full border border-paper-200 bg-paper-100 px-2 py-0.5 text-[11px] font-semibold uppercase text-paper-700">Standard</span>;
 }
 
 export function TicketView({

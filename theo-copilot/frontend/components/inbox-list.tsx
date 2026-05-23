@@ -16,17 +16,18 @@ function ago(opened_at: string | null): string {
 
 function ModeChip({ mode }: { mode: string | null }) {
   if (mode === 'autonomous_done')
-    return <span className="inline-flex items-center rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-teal-800">✓ Autonom</span>;
+    return <span className="inline-flex items-center whitespace-nowrap rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-teal-800">Autonom</span>;
   if (mode === 'bundle_approve')
-    return <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-700">Einmal bestätigen</span>;
+    return <span className="inline-flex items-center whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-700">Bestätigen</span>;
   return null;
 }
 
 function PriorityPill({ priority }: { priority: string | null }) {
   if (priority === 'DRINGEND')
-    return <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-semibold uppercase text-red-700">Dringend</span>;
-  if (priority === 'Hoch')
-    return <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold uppercase text-amber-700">Hoch</span>;
+    return <span className="inline-flex whitespace-nowrap rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-semibold uppercase text-red-700">Dringend</span>;
+  // Accept both 'Hoch' (legacy data) and 'Wichtig' (new) for the middle tier.
+  if (priority === 'Hoch' || priority === 'Wichtig')
+    return <span className="inline-flex whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold uppercase text-amber-700">Wichtig</span>;
   return null;
 }
 

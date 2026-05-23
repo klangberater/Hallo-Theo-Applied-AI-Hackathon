@@ -31,7 +31,7 @@ def _new_id(prefix: str) -> str:
 
 _URGENCY_TO_PRIORITY = {
     "emergency": "DRINGEND",
-    "urgent": "Hoch",
+    "urgent": "Wichtig",
     "standard": "Standard",
 }
 
