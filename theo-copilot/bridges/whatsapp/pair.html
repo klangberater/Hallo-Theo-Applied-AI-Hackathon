@@ -2,44 +2,125 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <title>Theo Copilot — WhatsApp Pairing</title>
+  <title>Fletcher — WhatsApp Pairing</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#FBFAF7">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Fraunces:opsz,wght@9..144,500&display=swap" rel="stylesheet">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
-           background: #0a0a0a; color: #f5f5f5; min-height: 100vh; margin: 0;
-           display: grid; place-items: center; padding: 1.5rem; }
-    main { max-width: 32rem; width: 100%; text-align: center; }
-    h1 { font-size: 1.5rem; margin: 0 0 0.6rem; letter-spacing: -0.01em; }
-    .step { color: #a1a1aa; font-size: 0.95rem; line-height: 1.5; }
-    .qr-wrap {
-      background: #fff; border-radius: 12px; padding: 1rem;
-      margin: 1.5rem auto; width: 16rem; height: 16rem; display: grid;
-      place-items: center;
+    :root {
+      --paper-50:#FBFAF7;--paper-100:#F5F3EE;--paper-200:#ECE9E2;
+      --paper-300:#D9D5CB;--paper-400:#B5AFA1;--paper-500:#8A8475;
+      --paper-700:#3F3B33;--paper-900:#161513;
+      --teal-50:#ECFDF8;--teal-100:#D1FAEE;--teal-200:#A7F0DD;
+      --teal-500:#14B295;--teal-600:#0F8E78;--teal-700:#0E7060;--teal-800:#0D584E;
+      --green-100:#DCFCE7;--green-500:#16A34A;--green-700:#166534;
+      --font-sans:'Geist',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+      --font-serif:'Fraunces',Georgia,serif;
+      --radius-md:10px;--radius-lg:14px;--radius-full:9999px;
+      --shadow-sm:0 1px 3px 0 rgba(22,21,19,.06),0 1px 2px 0 rgba(22,21,19,.04);
+      --shadow-md:0 4px 8px -2px rgba(22,21,19,.08),0 2px 4px -2px rgba(22,21,19,.04);
     }
-    .qr-wrap canvas, .qr-wrap img { max-width: 100%; height: auto; }
-    .status { font-size: 0.85rem; padding: 0.5rem 0.9rem; border-radius: 999px;
-              display: inline-block; }
-    .status.pairing { background: rgba(251,191,36,0.1); color: #fbbf24;
-                      border: 1px solid rgba(251,191,36,0.3); }
-    .status.ready   { background: rgba(16,185,129,0.12); color: #10b981;
-                      border: 1px solid rgba(16,185,129,0.3); }
-    .hint { color: #71717a; font-size: 0.8rem; margin-top: 1rem; }
-    .step ol { text-align: left; max-width: 22rem; margin: 0.5rem auto; padding-left: 1.4rem; }
-    .step ol li { margin: 0.3rem 0; }
+    *,*::before,*::after{box-sizing:border-box}
+    body{
+      font-family:var(--font-sans);
+      font-size:17px;
+      line-height:1.55;
+      color:var(--paper-900);
+      background:var(--paper-50);
+      -webkit-font-smoothing:antialiased;
+      font-feature-settings:'ss01','cv11';
+      min-height:100vh;
+      margin:0;
+      display:grid;
+      place-items:center;
+      padding:1.5rem;
+    }
+    main{max-width:32rem;width:100%;text-align:center}
+    .brand{
+      font-family:var(--font-serif);
+      font-size:22px;
+      font-weight:500;
+      font-style:italic;
+      color:var(--teal-700);
+      letter-spacing:-0.01em;
+      margin:0 0 8px;
+    }
+    h1{
+      font-family:var(--font-serif);
+      font-size:28px;
+      font-weight:500;
+      letter-spacing:-0.015em;
+      margin:0 0 24px;
+      color:var(--paper-900);
+    }
+    .steps{
+      text-align:left;
+      max-width:24rem;
+      margin:0 auto 32px;
+      padding:0 0 0 20px;
+      font-size:15px;
+      color:var(--paper-700);
+      line-height:1.6;
+    }
+    .steps li{margin:6px 0}
+    .steps strong{color:var(--paper-900);font-weight:600}
+    .qr-card{
+      background:#fff;
+      border:1px solid var(--paper-200);
+      border-radius:14px;
+      padding:20px;
+      box-shadow:var(--shadow-md);
+      margin:0 auto 24px;
+      width:18rem;height:18rem;
+      display:grid;place-items:center;
+    }
+    .qr-card img,.qr-card canvas{max-width:100%;height:auto}
+    .status{
+      font-size:14px;font-weight:600;
+      padding:6px 14px;
+      border-radius:var(--radius-full);
+      display:inline-block;
+      letter-spacing:0.02em;
+    }
+    .status.pairing{
+      background:var(--teal-50);
+      color:var(--teal-700);
+      border:1px solid var(--teal-200);
+    }
+    .status.ready{
+      background:#F0FDF4;
+      color:var(--green-700);
+      border:1px solid var(--green-100);
+    }
+    .hint{
+      color:var(--paper-500);
+      font-size:13px;
+      margin-top:24px;
+      letter-spacing:0.02em;
+    }
+    .check{
+      width:96px;height:96px;border-radius:50%;
+      background:#F0FDF4;border:2px solid var(--green-500);
+      display:grid;place-items:center;
+      color:var(--green-500);font-size:48px;font-weight:700;
+    }
   </style>
 </head>
 <body>
   <main>
-    <h1>Theo Copilot — WhatsApp Pairing</h1>
-    <p class="step">
-      <ol>
-        <li>Auf dem Telefon: <strong>WhatsApp → Einstellungen → Verknüpfte Geräte</strong></li>
-        <li><strong>„Gerät hinzufügen"</strong> tippen</li>
-        <li>QR-Code unten scannen</li>
-      </ol>
-    </p>
+    <p class="brand">Fletcher</p>
+    <h1>WhatsApp verknüpfen</h1>
 
-    <div class="qr-wrap"><div id="qr"></div></div>
+    <ol class="steps">
+      <li>Auf dem Telefon: <strong>WhatsApp → Einstellungen → Verknüpfte Geräte</strong></li>
+      <li>Tippen Sie auf <strong>„Gerät hinzufügen"</strong></li>
+      <li>QR-Code unten scannen</li>
+    </ol>
+
+    <div class="qr-card"><div id="qr"></div></div>
+
     <div id="status" class="status pairing">⏳ wartet auf Scan…</div>
 
     <p class="hint">Der QR-Code wird automatisch erneuert.</p>
@@ -52,14 +133,10 @@
     let lastQrText = "";
 
     function renderQR(text) {
-      // qrcode-generator: pick a type that fits 230 chars at 'L' error correction.
-      // Type 0 = auto. Returns an SVG/IMG via createImgTag / createSvgTag.
       const qr = qrcode(0, "L");
       qr.addData(text);
       qr.make();
-      // cellSize 6 px → ~240px image for typical WhatsApp QR
       qrEl.innerHTML = qr.createImgTag(6, 8);
-      // Inline-block image needs explicit width to fill container
       const img = qrEl.querySelector("img");
       if (img) { img.style.width = "100%"; img.style.height = "auto"; }
     }
@@ -75,7 +152,7 @@
         if (paired) {
           statusEl.textContent = "✓ Gerät erfolgreich verknüpft";
           statusEl.className = "status ready";
-          qrEl.innerHTML = "<div style='color:#10b981;font-size:3rem;line-height:16rem'>✓</div>";
+          qrEl.innerHTML = "<div class='check'>✓</div>";
           return;
         }
 
@@ -85,12 +162,11 @@
           statusEl.textContent = "⏳ wartet auf Scan…";
           statusEl.className = "status pairing";
         } else if (!qr && !lastQrText) {
-          qrEl.innerHTML = "<div style='color:#71717a'>kein QR verfügbar</div>";
+          qrEl.innerHTML = "<div style='color:var(--paper-500);font-size:14px'>kein QR verfügbar</div>";
         }
       } catch (err) {
         console.error("tick failed", err);
         statusEl.textContent = "Fehler: " + (err.message || err);
-        statusEl.className = "status pairing";
       }
     }
 
