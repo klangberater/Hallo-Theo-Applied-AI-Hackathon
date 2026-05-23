@@ -556,6 +556,61 @@ CSS = """
     font-size: var(--text-md);
     color: var(--text-tertiary);
   }
+
+  /* INDEPENDENT PANE SCROLLING ----------------------------------------
+     The layout columns sit in st.container(key="main-layout") so we can
+     give them a fixed height (viewport minus header) and let each leaf
+     column scroll on its own. */
+  .st-key-main-layout > [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] {
+    height: calc(100vh - 130px);
+    align-items: stretch;
+  }
+  /* Outer columns (col_list, col_detail) fill the layout height. */
+  .st-key-main-layout > [data-testid="stVerticalBlock"]
+      > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: var(--space-2);
+  }
+  /* Inner horizontal block (sub_detail + sub_context) fills col_detail. */
+  .st-key-main-layout [data-testid="stColumn"]
+      > [data-testid="stVerticalBlock"]
+      > [data-testid="stHorizontalBlock"] {
+    height: 100%;
+    align-items: stretch;
+  }
+  /* col_detail itself shouldn't scroll — the inner subpanes do. */
+  .st-key-main-layout [data-testid="stColumn"]:has(
+      > [data-testid="stVerticalBlock"]
+      > [data-testid="stHorizontalBlock"]
+  ) {
+    overflow: hidden;
+  }
+  /* Subpane columns scroll independently. */
+  .st-key-main-layout [data-testid="stColumn"]
+      > [data-testid="stVerticalBlock"]
+      > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: var(--space-2);
+  }
+  /* Thin scrollbars to match the paper aesthetic. */
+  .st-key-main-layout [data-testid="stColumn"] {
+    scrollbar-width: thin;
+    scrollbar-color: var(--paper-300) transparent;
+  }
+  .st-key-main-layout [data-testid="stColumn"]::-webkit-scrollbar {
+    width: 6px;
+  }
+  .st-key-main-layout [data-testid="stColumn"]::-webkit-scrollbar-thumb {
+    background: var(--paper-300);
+    border-radius: 3px;
+  }
+  .st-key-main-layout [data-testid="stColumn"]::-webkit-scrollbar-track {
+    background: transparent;
+  }
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -596,49 +651,50 @@ with header_r:
 
 
 # ---------------------------------------------------------------------------
-# Layout — 2 columns (list + detail, with enrichment stacked inside detail)
+# Layout — 2 columns (list + detail, with context as nested subpane).
+# Wrapped in st.container(key="main-layout") so CSS can give each pane
+# its own scroll without affecting the header row above.
 # ---------------------------------------------------------------------------
 
-col_list, col_detail = st.columns([1, 3], gap="medium")
+with st.container(key="main-layout"):
+    col_list, col_detail = st.columns([1, 3], gap="medium")
 
+    with col_list:
+        st.markdown(
+            "<p class='section-label'>Inbox</p>", unsafe_allow_html=True
+        )
+        tickets = fetch_ticket_list()
+        inbox.render(
+            tickets,
+            st.session_state.selected_ticket_id,
+            st.session_state.opened_ticket_ids,
+        )
 
-# Left — ticket list
-with col_list:
-    st.markdown("<p class='section-label'>Inbox</p>", unsafe_allow_html=True)
-    tickets = fetch_ticket_list()
-    inbox.render(
-        tickets,
-        st.session_state.selected_ticket_id,
-        st.session_state.opened_ticket_ids,
-    )
-
-
-# Right — detail (left subpane) + context (right subpane)
-if st.session_state.selected_ticket_id:
-    ticket = fetch_ticket(st.session_state.selected_ticket_id)
-    if ticket is None:
-        with col_detail:
-            st.warning("Ticket nicht gefunden.")
+    if st.session_state.selected_ticket_id:
+        ticket = fetch_ticket(st.session_state.selected_ticket_id)
+        if ticket is None:
+            with col_detail:
+                st.warning("Ticket nicht gefunden.")
+        else:
+            with col_detail:
+                sub_detail, sub_context = st.columns([1.8, 1], gap="medium")
+                with sub_detail:
+                    ticket_detail.render(ticket)
+                    action_panel.render(ticket)
+                with sub_context:
+                    st.markdown(
+                        "<p class='section-label'>Kontext</p>",
+                        unsafe_allow_html=True,
+                    )
+                    enrichment_cards.render(ticket)
     else:
         with col_detail:
-            sub_detail, sub_context = st.columns([1.8, 1], gap="medium")
-            with sub_detail:
-                ticket_detail.render(ticket)
-                action_panel.render(ticket)
-            with sub_context:
-                st.markdown(
-                    "<p class='section-label'>Kontext</p>",
-                    unsafe_allow_html=True,
-                )
-                enrichment_cards.render(ticket)
-else:
-    with col_detail:
-        st.markdown(
-            """
-            <div class='empty-state-wrap'>
-              <div class='empty-state-icon'>✉</div>
-              <div class='empty-state-text'>Wählen Sie eine Nachricht aus der Liste.</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+            st.markdown(
+                """
+                <div class='empty-state-wrap'>
+                  <div class='empty-state-icon'>✉</div>
+                  <div class='empty-state-text'>Wählen Sie eine Nachricht aus der Liste.</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
