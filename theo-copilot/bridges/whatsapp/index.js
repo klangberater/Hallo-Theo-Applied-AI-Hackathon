@@ -228,6 +228,18 @@ app.post('/send', async (req, res) => {
   }
   try {
     const jid = e164ToJid(to);
+    // Pre-establish the Signal session so the recipient phone has the
+    // sender's prekey before it sees the message. Without this, WhatsApp
+    // displays "Waiting for this message. This may take a while." for ~10s
+    // after every outbound — especially noticeable for self-chat where the
+    // 'recipient' is your own phone connecting as a separate device.
+    try {
+      if (typeof sock.assertSessions === 'function') {
+        await sock.assertSessions([jid], true);
+      }
+    } catch (preErr) {
+      log.warn({ err: preErr.message, jid }, 'assertSessions failed (continuing)');
+    }
     const result = await sock.sendMessage(jid, { text: body });
     log.info({ to, msgId: result?.key?.id }, 'sent');
     res.json({ ok: true, message_id: result?.key?.id });
