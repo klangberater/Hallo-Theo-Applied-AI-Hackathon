@@ -462,12 +462,34 @@ CSS = """
     border-color: var(--teal-700) !important;
   }
   /* Inbox rows: each row is an <a> link to ?t=<id>. Whole row is the
-     browser-native click target — no Streamlit button needed. */
+     browser-native click target — but the text inside must NOT look like
+     a link. Reset color/decoration aggressively so Streamlit's default
+     <a> styling doesn't bleed through. */
+  .inbox-row-link,
+  .inbox-row-link:link,
+  .inbox-row-link:visited,
+  .inbox-row-link:hover,
+  .inbox-row-link:active,
+  .inbox-row-link *,
+  .inbox-row-link *:hover {
+    text-decoration: none !important;
+    color: inherit !important;
+  }
   .inbox-row-link {
     display: block;
-    text-decoration: none;
-    color: inherit;
+    cursor: pointer;
   }
+  /* Keep the colored chips/pills the way the row defines them. */
+  .inbox-row-link .chip-critical,
+  .inbox-row-link .chip-critical * { color: var(--red-700) !important; }
+  .inbox-row-link .chip-warning,
+  .inbox-row-link .chip-warning *  { color: var(--amber-700) !important; }
+  .inbox-row-link .inbox-pill-incidents,
+  .inbox-row-link .inbox-pill-incidents * { color: var(--red-700) !important; }
+  .inbox-row-link .mode-chip-autonomous,
+  .inbox-row-link .mode-chip-autonomous * { color: var(--teal-800) !important; }
+  .inbox-row-link .mode-chip-bundle,
+  .inbox-row-link .mode-chip-bundle *     { color: var(--amber-700) !important; }
   .inbox-row-link:focus-visible {
     outline: 2px solid var(--border-focus);
     outline-offset: -2px;
