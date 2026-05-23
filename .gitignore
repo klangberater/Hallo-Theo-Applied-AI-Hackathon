@@ -1,0 +1,25 @@
+# Local caches / tooling
+.lean-ctx/
+.claude/
+.DS_Store
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Env + secrets
+.env
+.env.*
+!.env.example
+
+# Build artifacts
+dist/
+build/
+node_modules/
+*.log
+
+# IDE
+.vscode/
+.idea/
