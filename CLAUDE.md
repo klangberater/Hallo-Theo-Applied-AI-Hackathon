@@ -56,6 +56,12 @@ The order in `theo-copilot/PRODUCT_SPEC.md` §10 is not a suggestion. Follow it:
 - Never bind a service to `0.0.0.0` in the docker-compose. All ports `127.0.0.1` only. Demo access via SSH tunnel or the existing reverse proxy.
 - Never commit `.env` files or API keys. Standard discipline still applies even at hackathon speed.
 
+### Keep the README current
+
+The root `README.md` is the jury-facing document. **Update it as part of any change that affects what it claims** — new endpoint, new agent tool, new env var, new service, stack swap, architectural shift, demo-flow change. The README must always describe the system as it actually is, not as it was scaffolded. If you change behaviour and don't touch the README, you haven't finished the task.
+
+Same rule for `theo-copilot/README.md` when the change is implementation-level (file layout, systemd units, smoke-test commands).
+
 ### How to interact with the human
 
 This team is in a hackathon. Be terse. Show your work but not your reasoning at length. If you'd ask 3 clarifying questions, ask 1 and ship a default for the other 2.
@@ -144,6 +150,7 @@ hallo-theo/
 - Write tests alongside non-trivial logic.
 - Update `docs/SPEC.md` if you change product behavior.
 - Update `docs/architecture.md` if you change system structure (new service, table, integration, real-time flow).
+- **Update `README.md`** whenever the change affects anything it documents — endpoints, agent tools, env vars, stack, services, demo flow. The README is the jury/onboarding entry point; never let it drift.
 
 ### 2. Testing Locally
 - Restart dev servers after backend changes — the backend does **not** hot-reload.
@@ -218,6 +225,7 @@ cd frontend && npx tsc --noEmit
 - Run linters before committing.
 - Write tests for new logic.
 - Keep `docs/architecture.md` accurate.
+- Keep `README.md` accurate — update it whenever you change anything it documents.
 
 ❌ **DON'T**
 - Auto-deploy to production.
