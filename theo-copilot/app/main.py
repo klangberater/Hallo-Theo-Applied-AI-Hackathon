@@ -125,51 +125,108 @@ CSS = """
     margin-left: var(--space-3);
   }
 
-  /* TICKET ROW (left column) — from design system pattern */
-  .ticket {
+  /* INBOX ROW (left column) — dense email-client pattern */
+  .inbox-row {
     display: grid;
-    grid-template-columns: 4px 1fr auto;
-    gap: var(--space-3);
-    padding: var(--space-3) var(--space-4) var(--space-3) 0;
+    grid-template-columns: 14px 1fr;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
     border-bottom: 1px solid var(--border-subtle);
-    cursor: pointer;
     transition: background 120ms ease;
     align-items: start;
-    text-decoration: none;
-    color: inherit;
   }
-  .ticket:hover { background: var(--paper-50); }
-  .ticket.selected { background: var(--teal-50); }
-  .ticket-bar {
-    align-self: stretch;
-    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  .inbox-row.selected { background: var(--teal-50); }
+  .inbox-row-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    margin-top: 8px;
+    background: transparent;
+    transition: background 120ms ease;
   }
-  .ticket-bar-critical { background: var(--red-500); }
-  .ticket-bar-warning  { background: var(--amber-500); }
-  .ticket-bar-neutral  { background: transparent; }
-  .ticket-name {
-    font-size: var(--text-base); font-weight: 600;
+  .inbox-row.unread .inbox-row-dot { background: var(--teal-500); }
+  .inbox-row-body {
+    min-width: 0;  /* enables text-overflow on children */
+  }
+  .inbox-row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin-bottom: 2px;
+  }
+  .inbox-row-sender {
+    font-size: var(--text-base);
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .inbox-row.unread .inbox-row-sender {
+    font-weight: 600;
     color: var(--text-primary);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    margin: 0 0 2px;
   }
-  .ticket-property {
-    font-size: var(--text-sm); color: var(--text-secondary);
-    margin: 0 0 var(--space-2);
+  .inbox-row-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-shrink: 0;
   }
-  .ticket-meta {
-    display: flex; align-items: center; gap: var(--space-2);
-    font-size: var(--text-xs); color: var(--text-tertiary);
+  .inbox-row-channel {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
   }
-  .ticket-meta-sep {
-    width: 3px; height: 3px; background: var(--paper-400); border-radius: 50%;
+  .inbox-row-time {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
-  .ticket-vuln {
-    color: var(--red-600); font-weight: 600;
+  .inbox-row-subject {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
   }
-  .ticket-time {
-    font-size: var(--text-xs); color: var(--text-tertiary);
-    white-space: nowrap; padding-top: 2px;
+  .inbox-row-category {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .inbox-row.unread .inbox-row-category {
+    color: var(--text-primary);
+  }
+  .inbox-row-sep { color: var(--paper-400); }
+  .inbox-row-address {
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .inbox-row-preview {
+    font-size: var(--text-sm);
+    color: var(--text-tertiary);
+    line-height: var(--leading-snug);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .inbox-pill-incidents {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 7px;
+    background: var(--red-50);
+    color: var(--red-700);
+    border: 1px solid var(--red-100);
+    border-radius: var(--radius-full);
+    white-space: nowrap;
+  }
+  .inbox-chip {
+    font-size: 10px !important;
+    padding: 1px 6px !important;
   }
 
   /* Section labels (e.g. "INBOX", "CONVERSATION", "SUGGESTED ACTIONS") */
@@ -411,7 +468,7 @@ CSS = """
   [class*="st-key-ticket-row-"] [data-testid="stMarkdownContainer"] {
     pointer-events: none;
   }
-  [class*="st-key-ticket-row-"] .ticket {
+  [class*="st-key-ticket-row-"] .inbox-row {
     pointer-events: none;
   }
   [class*="st-key-ticket-row-"] [data-testid="stVerticalBlock"] {
@@ -442,7 +499,7 @@ CSS = """
     outline-offset: -2px;
   }
   /* Drive the card hover from the container, since the overlay button absorbs the pointer. */
-  [class*="st-key-ticket-row-"]:hover .ticket:not(.selected) {
+  [class*="st-key-ticket-row-"]:hover .inbox-row:not(.selected) {
     background: var(--paper-50);
   }
 
@@ -474,6 +531,28 @@ CSS = """
     text-align: center;
     padding: var(--space-16) var(--space-4);
   }
+  .empty-state-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    padding: var(--space-16) var(--space-4);
+    color: var(--text-tertiary);
+    text-align: center;
+  }
+  .empty-state-icon {
+    font-size: 64px;
+    line-height: 1;
+    opacity: 0.4;
+    color: var(--paper-400);
+  }
+  .empty-state-text {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: var(--text-md);
+    color: var(--text-tertiary);
+  }
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -487,6 +566,8 @@ if "selected_ticket_id" not in st.session_state:
     st.session_state.selected_ticket_id = None
 if "show_trace" not in st.session_state:
     st.session_state.show_trace = False
+if "opened_ticket_ids" not in st.session_state:
+    st.session_state.opened_ticket_ids = set()
 
 
 # ---------------------------------------------------------------------------
@@ -505,23 +586,28 @@ with header_r:
 
 
 # ---------------------------------------------------------------------------
-# Layout — 3 columns
+# Layout — 2 columns (list + detail, with enrichment stacked inside detail)
 # ---------------------------------------------------------------------------
 
-col_list, col_detail, col_enrich = st.columns([1, 1.5, 1.3], gap="medium")
+col_list, col_detail = st.columns([1, 3], gap="medium")
 
 
 # Left — ticket list
 with col_list:
     st.markdown("<p class='section-label'>Inbox</p>", unsafe_allow_html=True)
     tickets = fetch_ticket_list()
-    selected_id = inbox.render(tickets, st.session_state.selected_ticket_id)
+    selected_id = inbox.render(
+        tickets,
+        st.session_state.selected_ticket_id,
+        st.session_state.opened_ticket_ids,
+    )
     if selected_id and selected_id != st.session_state.selected_ticket_id:
         st.session_state.selected_ticket_id = selected_id
+        st.session_state.opened_ticket_ids.add(selected_id)
         st.rerun()
 
 
-# Middle + right — detail + enrichment
+# Right — detail + enrichment stacked
 if st.session_state.selected_ticket_id:
     ticket = fetch_ticket(st.session_state.selected_ticket_id)
     if ticket is None:
@@ -531,11 +617,19 @@ if st.session_state.selected_ticket_id:
         with col_detail:
             ticket_detail.render(ticket)
             action_panel.render(ticket)
-        with col_enrich:
+            st.markdown(
+                "<p class='section-label'>Kontext</p>",
+                unsafe_allow_html=True,
+            )
             enrichment_cards.render(ticket)
 else:
     with col_detail:
         st.markdown(
-            "<div class='empty-state'>Wählen Sie ein Ticket aus der Liste.</div>",
+            """
+            <div class='empty-state-wrap'>
+              <div class='empty-state-icon'>✉</div>
+              <div class='empty-state-text'>Wählen Sie eine Nachricht aus der Liste.</div>
+            </div>
+            """,
             unsafe_allow_html=True,
         )

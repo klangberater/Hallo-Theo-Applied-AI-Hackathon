@@ -63,7 +63,7 @@ def fetch_ticket_list(limit: int = 50) -> list[dict]:
     return _query(
         """
         SELECT t.id, t.unit_id, t.category, t.priority, t.status, t.opened_at,
-               t.classified_intent,
+               t.classified_intent, t.full_text,
                t.enrichment->'prior_incidents'->>'count' AS pattern_count,
                t.enrichment->>'autonomy_mode' AS autonomy_mode,
                u.label AS unit_label,

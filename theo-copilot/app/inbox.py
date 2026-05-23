@@ -1,7 +1,8 @@
-"""Ticket list — left column. Fletcher design-system inbox row pattern."""
+"""Inbox list — dense email-client style rows. Whole row is the click target."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from html import escape
 
 import streamlit as st
 
@@ -11,6 +12,16 @@ CHANNEL_ICON = {
     "email": "✉",
     "voicemail": "📞",
     "portal": "🖥",
+}
+
+_MODE_CHIP = {
+    "autonomous_done": (
+        "<span class='mode-chip mode-chip-autonomous'>✓ Autonom erledigt</span>"
+    ),
+    "bundle_approve": (
+        "<span class='mode-chip mode-chip-bundle'>Einmal bestätigen</span>"
+    ),
+    "propose": "",  # default — no chip; "Schritt für Schritt" is implicit
 }
 
 
@@ -30,26 +41,33 @@ def _ago(opened_at) -> str:
     return f"vor {delta.days} d"
 
 
-def _bar_class(priority: str) -> str:
+def _preview(text: str | None, limit: int = 110) -> str:
+    if not text:
+        return ""
+    cleaned = " ".join(text.split())
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[: limit - 1].rstrip() + "…"
+
+
+def _priority_chip(priority: str) -> str:
     if priority == "DRINGEND":
-        return "ticket-bar ticket-bar-critical"
+        return "<span class='chip chip-critical inbox-chip'>Dringend</span>"
     if priority == "Hoch":
-        return "ticket-bar ticket-bar-warning"
-    return "ticket-bar ticket-bar-neutral"
+        return "<span class='chip chip-warning inbox-chip'>Hoch</span>"
+    return ""
 
 
-_MODE_CHIP = {
-    "autonomous_done": "<span class='mode-chip mode-chip-autonomous'>✓ Autonom erledigt</span>",
-    "bundle_approve":  "<span class='mode-chip mode-chip-bundle'>Einmal bestätigen</span>",
-    "propose":         "",  # default — no chip needed; "Schritt für Schritt" is implicit
-}
-
-
-def render(tickets: list[dict], selected_id: str | None) -> str | None:
+def render(
+    tickets: list[dict],
+    selected_id: str | None,
+    opened_ids: set[str],
+) -> str | None:
     """Render ticket rows. Returns newly-selected id if changed."""
     if not tickets:
         st.markdown(
-            "<div class='empty-state' style='padding:var(--space-8)'>Keine Tickets.</div>",
+            "<div class='empty-state' style='padding:var(--space-8)'>"
+            "Keine Tickets.</div>",
             unsafe_allow_html=True,
         )
         return None
@@ -58,41 +76,68 @@ def render(tickets: list[dict], selected_id: str | None) -> str | None:
     for t in tickets:
         ticket_id = t["id"]
         is_selected = ticket_id == selected_id
+        is_unread = ticket_id not in opened_ids
         priority = t.get("priority") or "Standard"
         channel = (t.get("channel") or "whatsapp").lower()
         channel_icon = CHANNEL_ICON.get(channel, "📨")
-        pattern = t.get("pattern_count")
-        intent = (t.get("classified_intent") or "").title()
+        pattern_raw = t.get("pattern_count")
+        pattern_count = int(pattern_raw) if pattern_raw else 0
+        intent = (
+            t.get("classified_intent") or t.get("category") or "Allgemein"
+        ).title()
         tenant_name = t.get("tenant_name", "unknown")
         unit_label = t.get("unit_label", "")
         ago = _ago(t["opened_at"])
-
+        preview = _preview(t.get("full_text"))
         autonomy = t.get("autonomy_mode") or "propose"
         mode_chip = _MODE_CHIP.get(autonomy, "")
 
-        meta_parts = [f"{channel_icon} {intent or 'Sonstiges'}"]
-        if pattern and int(pattern) >= 3:
-            meta_parts.append(f"<span class='ticket-vuln'>🔁 {pattern} Vorfälle</span>")
-        meta_html = ' <span class="ticket-meta-sep"></span> '.join(meta_parts)
+        classes = ["inbox-row"]
+        if is_selected:
+            classes.append("selected")
+        if is_unread:
+            classes.append("unread")
+        row_class = " ".join(classes)
 
-        selected_class = " selected" if is_selected else ""
-        # Layout: status bar | body | (chip + time)
+        priority_html = _priority_chip(priority)
+        incidents_html = (
+            f"<span class='inbox-pill-incidents'>🔁 {pattern_count}</span>"
+            if pattern_count >= 3
+            else ""
+        )
+
+        subject_parts = [
+            f"<span class='inbox-row-category'>{escape(intent)}</span>"
+        ]
+        if unit_label:
+            address_text = f"{escape(unit_label)} · Zossener Str. 47"
+            subject_parts.append(
+                "<span class='inbox-row-sep'>·</span>"
+                f"<span class='inbox-row-address'>{address_text}</span>"
+            )
+
         row_html = f"""
-        <div class="ticket{selected_class}">
-          <div class="{_bar_class(priority)}"></div>
-          <div>
-            <p class="ticket-name">{tenant_name}</p>
-            <p class="ticket-property">{unit_label} · Zossener Str. 47</p>
-            <div class="ticket-meta">{meta_html}</div>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-            <div class="ticket-time">{ago}</div>
-            {mode_chip}
+        <div class="{row_class}">
+          <div class="inbox-row-dot"></div>
+          <div class="inbox-row-body">
+            <div class="inbox-row-top">
+              <span class="inbox-row-sender">{escape(tenant_name)}</span>
+              <div class="inbox-row-meta">
+                <span class="inbox-row-channel" title="{channel}">{channel_icon}</span>
+                {priority_html}
+                <span class="inbox-row-time">{escape(ago)}</span>
+              </div>
+            </div>
+            <div class="inbox-row-subject">
+              {''.join(subject_parts)}
+              {incidents_html}
+              {mode_chip}
+            </div>
+            <div class="inbox-row-preview">{escape(preview)}</div>
           </div>
         </div>
         """
 
-        # Visual card + transparent overlay button (entire row is the click target).
         with st.container(key=f"ticket-row-{ticket_id}"):
             st.markdown(row_html, unsafe_allow_html=True)
             if st.button(
