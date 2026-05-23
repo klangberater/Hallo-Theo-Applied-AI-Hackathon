@@ -27,7 +27,7 @@ st.set_page_config(
     page_title="Fletcher — Operations Inbox",
     page_icon="🏢",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 
@@ -98,6 +98,28 @@ CSS = """
     font-feature-settings: 'ss01','cv11';
   }
   [data-testid="stHeader"] { display: none; }
+  /* …but keep the sidebar collapse/expand chevron visible.
+     Streamlit lives the toggle under a few different test-ids depending on
+     version + collapsed state — re-show all of them. */
+  [data-testid="stSidebarCollapsedControl"],
+  [data-testid="stSidebarCollapseButton"],
+  [data-testid="collapsedControl"],
+  button[kind="header"],
+  button[kind="headerNoPadding"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 999 !important;
+    position: fixed !important;
+    top: 8px !important; left: 8px !important;
+    background: var(--surface-raised) !important;
+    border: 1px solid var(--border-default) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-primary) !important;
+    width: 36px !important; height: 36px !important;
+    align-items: center !important; justify-content: center !important;
+    cursor: pointer !important;
+  }
   .block-container {
     padding-top: var(--space-5) !important;
     padding-bottom: var(--space-4) !important;
