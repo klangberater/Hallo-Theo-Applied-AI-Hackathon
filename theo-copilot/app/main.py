@@ -360,17 +360,46 @@ CSS = """
     background: var(--teal-700) !important;
     border-color: var(--teal-700) !important;
   }
-  /* Buttons inside ticket rows should stretch + center */
-  .ticket-button .stButton > button {
-    width: 100%;
-    background: transparent !important;
-    border: none !important;
-    padding: var(--space-3) var(--space-4) !important;
-    text-align: left !important;
-    border-radius: var(--radius-sm) !important;
+  /* Inbox rows: visual card + invisible button overlay (whole row clickable). */
+  [class*="st-key-ticket-row-"] {
+    position: relative;
   }
-  .ticket-button .stButton > button:hover {
-    background: var(--paper-50) !important;
+  [class*="st-key-ticket-row-"] [data-testid="stMarkdownContainer"] {
+    pointer-events: none;
+  }
+  [class*="st-key-ticket-row-"] .ticket {
+    pointer-events: none;
+  }
+  [class*="st-key-ticket-row-"] [data-testid="stVerticalBlock"] {
+    gap: 0 !important;
+  }
+  [class*="st-key-ticket-row-"] .stButton {
+    position: absolute;
+    inset: 0;
+    margin: 0 !important;
+    z-index: 2;
+  }
+  [class*="st-key-ticket-row-"] .stButton > button {
+    width: 100%;
+    height: 100%;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    color: transparent !important;
+    box-shadow: none !important;
+    cursor: pointer;
+  }
+  [class*="st-key-ticket-row-"] .stButton > button:hover {
+    background: transparent !important;
+  }
+  [class*="st-key-ticket-row-"] .stButton > button:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: -2px;
+  }
+  /* Drive the card hover from the container, since the overlay button absorbs the pointer. */
+  [class*="st-key-ticket-row-"]:hover .ticket:not(.selected) {
+    background: var(--paper-50);
   }
 
   /* Text inputs */

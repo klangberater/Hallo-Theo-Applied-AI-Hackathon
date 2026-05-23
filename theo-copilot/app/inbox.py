@@ -60,7 +60,6 @@ def render(tickets: list[dict], selected_id: str | None) -> str | None:
         unit_label = t.get("unit_label", "")
         ago = _ago(t["opened_at"])
 
-        # Render the visual row as HTML (the click target is a Streamlit button below)
         meta_parts = [f"{channel_icon} {intent or 'Sonstiges'}"]
         if pattern and int(pattern) >= 3:
             meta_parts.append(f"<span class='ticket-vuln'>🔁 {pattern} Vorfälle</span>")
@@ -78,16 +77,15 @@ def render(tickets: list[dict], selected_id: str | None) -> str | None:
           <div class="ticket-time">{ago}</div>
         </div>
         """
-        st.markdown(row_html, unsafe_allow_html=True)
 
-        # Invisible click handler — Streamlit button styled to fill the row
-        st.markdown("<div class='ticket-button'>", unsafe_allow_html=True)
-        if st.button(
-            "Öffnen" if not is_selected else "Geöffnet",
-            key=f"sel_{ticket_id}",
-            use_container_width=True,
-        ):
-            new_selection = ticket_id
-        st.markdown("</div>", unsafe_allow_html=True)
+        # Visual card + transparent overlay button (entire row is the click target).
+        with st.container(key=f"ticket-row-{ticket_id}"):
+            st.markdown(row_html, unsafe_allow_html=True)
+            if st.button(
+                f"Ticket {tenant_name} öffnen",
+                key=f"sel_{ticket_id}",
+                use_container_width=True,
+            ):
+                new_selection = ticket_id
 
     return new_selection
