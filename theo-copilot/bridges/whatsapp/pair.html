@@ -54,7 +54,10 @@
     async function tick() {
       try {
         const r = await fetch("/api/whatsapp/qr", { cache: "no-store" });
-        const { qr, paired } = await r.json();
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        const data = await r.json();
+        const qr = data.qr;
+        const paired = data.paired;
 
         if (paired) {
           statusEl.textContent = "✓ Gerät erfolgreich verknüpft";
@@ -65,13 +68,18 @@
 
         if (qr && qr !== lastQrText) {
           lastQrText = qr;
-          qrEl.innerHTML = "";
-          await QRCode.toCanvas(qrEl, qr, { width: 240, margin: 1 });
-        } else if (!qr) {
+          // toDataURL returns a base64 PNG — works in every browser, no canvas APIs.
+          const dataUrl = await QRCode.toDataURL(qr, { width: 240, margin: 1, errorCorrectionLevel: "L" });
+          qrEl.innerHTML = "<img src='" + dataUrl + "' alt='QR' style='width:100%;height:auto'>";
+          statusEl.textContent = "⏳ wartet auf Scan…";
+          statusEl.className = "status pairing";
+        } else if (!qr && !lastQrText) {
           qrEl.innerHTML = "<div style='color:#71717a'>kein QR verfügbar</div>";
         }
       } catch (err) {
-        statusEl.textContent = "Fehler beim Laden — neu versuchen…";
+        console.error("tick failed", err);
+        statusEl.textContent = "Fehler: " + (err.message || err);
+        statusEl.className = "status pairing";
       }
     }
 
