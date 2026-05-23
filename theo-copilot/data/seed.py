@@ -59,6 +59,8 @@ PROPERTIES = [
 ]
 
 UNITS = [
+    {"id": "common", "property_id": "zossener_47", "label": "Gemeinschaftsanlage",
+     "qm": 0, "type": "common"},
     {"id": "we_4l", "property_id": "zossener_47", "label": "WE 4 links",
      "qm": 68.2, "type": "wohnung"},
     {"id": "we_3r", "property_id": "zossener_47", "label": "WE 3 rechts",
@@ -370,6 +372,253 @@ TRUNCATE_ORDER = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# Schornsteinfeger demo ticket — autonomous_done (Phase 3 of autonomy work)
+#
+# This bypasses the normal intake/enrichment flow: we INSERT the ticket
+# already-enriched + already-executed at 03:14 Uhr so the demo starts with
+# an autonomous-mode ticket at the top of Sarah's inbox.
+# ---------------------------------------------------------------------------
+
+SF_TICKET_ID = "SF-2026-01"
+SF_THREAD_ID = "ct_schornsteinfeger_email"
+SF_TENANT_ID = "schornsteinfeger_innung"
+
+SF_TENANT = {
+    "id": SF_TENANT_ID,
+    "name": "Schornsteinfeger Innung Kreuzberg",
+    "email": "kontakt@schornsteinfeger-kreuzberg.de",
+    "phone": "+4930225 14 80",
+    "metadata": {"vendor_side": True, "trade": "Schornsteinfeger"},
+}
+SF_TENANT["phone"] = SF_TENANT["phone"].replace(" ", "")
+
+SF_HISTORICAL_TICKETS = [
+    {
+        "id": "SF-2024-01", "unit_id": "common", "category": "Pflichtwartung",
+        "priority": "Standard",
+        "opened_at": datetime(2024, 1, 8, 9, 0, tzinfo=timezone.utc),
+        "closed_at": datetime(2024, 1, 18, 12, 0, tzinfo=timezone.utc),
+        "resolution": "Jahres-Pflichtwartung 2024 durchgeführt am 18.01.2024. "
+                      "Alle Feuerstätten + Schornsteine i.O. Bescheinigung erstellt.",
+        "cost": 0.00, "vendor_id": "schornsteinfeger", "status": "closed",
+        "classified_intent": "scheduling",
+        "full_text": "Jahres-Pflichtwartung 2024 — Schornsteinfeger Innung Kreuzberg.",
+    },
+    {
+        "id": "SF-2025-01", "unit_id": "common", "category": "Pflichtwartung",
+        "priority": "Standard",
+        "opened_at": datetime(2025, 1, 14, 9, 0, tzinfo=timezone.utc),
+        "closed_at": datetime(2025, 1, 23, 12, 0, tzinfo=timezone.utc),
+        "resolution": "Jahres-Pflichtwartung 2025 durchgeführt am 23.01.2025. "
+                      "Alle Feuerstätten + Schornsteine i.O. Bescheinigung erstellt.",
+        "cost": 0.00, "vendor_id": "schornsteinfeger", "status": "closed",
+        "classified_intent": "scheduling",
+        "full_text": "Jahres-Pflichtwartung 2025 — Schornsteinfeger Innung Kreuzberg.",
+    },
+]
+
+SF_INBOUND_EMAIL_BODY = (
+    "Sehr geehrte Frau Weber,\n\n"
+    "für die jährliche Pflichtwartung 2026 der Feuerstätten und Schornsteine "
+    "in der Zossener Straße 47 benötigen wir einen Termin im 1. Quartal.\n\n"
+    "Verfügbare Slots:\n"
+    "  - Donnerstag, 15.01.2026, 09:00–12:00\n"
+    "  - Donnerstag, 22.01.2026, 09:00–12:00\n"
+    "  - Donnerstag, 29.01.2026, 13:00–16:00\n"
+    "  - Donnerstag, 05.02.2026, 09:00–12:00\n\n"
+    "Bitte um Rückmeldung bis Ende der Woche.\n\n"
+    "Mit freundlichen Grüßen\n"
+    "Heinrich Mader\n"
+    "Schornsteinfeger Innung Kreuzberg"
+)
+
+SF_AUTONOMOUS_REPLY_BODY = (
+    "Sehr geehrter Herr Mader,\n\n"
+    "vielen Dank für Ihre Nachricht. Wir bestätigen den Termin am "
+    "Donnerstag, 22.01.2026, 09:00–12:00 Uhr für die Jahres-Pflichtwartung "
+    "der Feuerstätten und Schornsteine in der Zossener Straße 47.\n\n"
+    "Der Zugang zum Heizraum erfolgt über das Treppenhaus, Kellergeschoss. "
+    "Den Termin habe ich für Sarah Weber im Kalender vermerkt.\n\n"
+    "Sollten sich Änderungen ergeben, melden wir uns rechtzeitig.\n\n"
+    "Mit freundlichen Grüßen\n"
+    "hallo theo Berlin GmbH\n"
+    "i.A. Theo Copilot (autonom bestätigt im Namen von S. Weber)"
+)
+
+SF_ENRICHMENT = {
+    "tenant_card": {
+        "tenant_id": SF_TENANT_ID,
+        "name": "Schornsteinfeger Innung Kreuzberg",
+        "warnings": [],
+        "sources": [{"kind": "vendor", "id": "schornsteinfeger"}],
+    },
+    "unit_card": {
+        "unit_id": "common",
+        "label": "Zossener Str. 47 — Gemeinschaftsanlage",
+        "sources": [],
+    },
+    "lease_facts": [],
+    "prior_incidents": {
+        "count": 2,
+        "timespan_months": 24,
+        "timeline": [
+            {"date": "2024-01-18",
+             "fact": "Jahres-Pflichtwartung 2024 durchgeführt — alles i.O.",
+             "source": {"kind": "ticket", "id": "SF-2024-01"}},
+            {"date": "2025-01-23",
+             "fact": "Jahres-Pflichtwartung 2025 durchgeführt — alles i.O.",
+             "source": {"kind": "ticket", "id": "SF-2025-01"}},
+        ],
+        "pattern_summary": (
+            "Routine: jährliche Pflichtwartung im Januar — Termin bestätigt im "
+            "gleichen Format wie 2024 und 2025."
+        ),
+        "source": "postgres-fallback",
+    },
+    "open_vendor_offers": [],
+    "internal_pre_approvals": [],
+    "weather": None,
+    "legal_context": [{
+        "citation": "Schornsteinfeger-Handwerksgesetz § 14",
+        "short_text": (
+            "Eigentümer ist zur jährlichen Schornsteinfeger-Pflichtwartung "
+            "verpflichtet. Termin ist verbindlich abzustimmen."
+        ),
+        "relevance": "Routine-Pflicht ohne Ermessensspielraum.",
+        "source": {"kind": "wiki", "id": "policies/heating-emergency-de.md"},
+    }],
+    "suggested_actions": [{
+        "action_type": "send_email_reply",
+        "payload": {
+            "subject": "Re: Jahres-Pflichtwartung 2026 — Terminabstimmung",
+            "body": SF_AUTONOMOUS_REPLY_BODY,
+            "thread_id": SF_THREAD_ID,
+        },
+        "rationale": (
+            "Terminbestätigung an die Schornsteinfeger-Innung für den 22.01.2026 "
+            "(im Kalender frei, gleiche Logistik wie 2024 und 2025)."
+        ),
+        "source_citations": [
+            {"kind": "ticket", "id": "SF-2025-01"},
+            {"kind": "wiki", "id": "policies/heating-emergency-de.md"},
+        ],
+        "confidence": "high",
+        "bundle_id": None,
+        "bundle_order": 0,
+        "executed_at": "2026-05-23T03:14:00Z",
+    }],
+    "autonomy_mode": "autonomous_done",
+    "autonomy_rationale": (
+        "Alle fünf Guardrails grün: Kosten 0 € (Pflichtwartung im Standardvertrag "
+        "enthalten); kein Mieter betroffen, keine Vulnerabilität; keine "
+        "rechtliche Exposition; klare Präzedenz aus 2024 + 2025 (gleicher Termin, "
+        "gleiche Logistik); Routine-Terminbestätigung. Habe um 03:14 Uhr autonom "
+        "geantwortet."
+    ),
+}
+
+SF_TRACE = [
+    (1, "intent_classification",
+     {"intent": "scheduling", "urgency": "standard", "confidence": 0.97,
+      "reasoning": "Routine annual Schornsteinfeger appointment request."}),
+    (2, "llm_call_started", {"turn": 0, "model": "claude-opus-4-5"}),
+    (3, "tool_use",
+     {"name": "list_tickets", "args": {"unit_id": "common"}}),
+    (4, "tool_result",
+     {"name": "list_tickets",
+      "preview": "[SF-2024-01 closed, SF-2025-01 closed — both Pflichtwartung]"}),
+    (5, "tool_use",
+     {"name": "search_wiki", "args": {"query": "Schornsteinfeger Pflichtwartung"}}),
+    (6, "tool_result",
+     {"name": "search_wiki",
+      "preview": "policies/heating-emergency-de.md — Pflichtwartung jährlich."}),
+    (7, "llm_call_completed",
+     {"turn": 0, "stop_reason": "end_turn",
+      "usage": {"in": 4220, "out": 612}}),
+    (8, "enrichment_payload",
+     {"autonomy_mode": "autonomous_done",
+      "rationale": "All 5 guardrails passed."}),
+    (9, "tool_use",
+     {"name": "send_email_reply",
+      "args": {"subject": "Re: Jahres-Pflichtwartung 2026 — Terminabstimmung"}}),
+    (10, "tool_result",
+     {"name": "send_email_reply", "preview": "{message_id: em_...}"}),
+]
+
+
+async def insert_schornsteinfeger(conn) -> None:
+    """Insert the autonomous_done Schornsteinfeger ticket + thread + trace."""
+    import json
+    # Pseudo-tenant for the Innungsmeister so channel_threads.tenant_id is satisfied
+    await conn.execute(
+        "INSERT INTO theo.tenants (id, name, email, phone, metadata) "
+        "VALUES ($1, $2, $3, $4, $5::jsonb)",
+        SF_TENANT["id"], SF_TENANT["name"], SF_TENANT["email"],
+        SF_TENANT["phone"], json.dumps(SF_TENANT["metadata"]),
+    )
+
+    # Historical Pflichtwartung tickets (precedent for the autonomy decision)
+    for tk in SF_HISTORICAL_TICKETS:
+        await conn.execute(
+            "INSERT INTO theo.tickets (id, unit_id, category, priority, opened_at, "
+            "closed_at, resolution, cost, vendor_id, full_text, classified_intent, "
+            "status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+            tk["id"], tk["unit_id"], tk["category"], tk["priority"],
+            tk["opened_at"], tk["closed_at"], tk["resolution"], tk["cost"],
+            tk["vendor_id"], tk["full_text"], tk["classified_intent"], tk["status"],
+        )
+
+    # Channel thread + inbound email + outbound autonomous reply
+    inbound_at = datetime(2026, 5, 23, 2, 41, tzinfo=timezone.utc)
+    reply_at = datetime(2026, 5, 23, 3, 14, tzinfo=timezone.utc)
+
+    await conn.execute(
+        "INSERT INTO theo.channel_threads (id, channel, external_id, tenant_id, "
+        "unit_id, last_message_at) VALUES ($1, 'email', $2, $3, 'common', $4)",
+        SF_THREAD_ID, "email-schornsteinfeger-2026", SF_TENANT_ID, reply_at,
+    )
+    await conn.execute(
+        "INSERT INTO theo.channel_messages (id, thread_id, direction, sender, "
+        "body, sent_at) VALUES ($1, $2, 'inbound', $3, $4, $5)",
+        "cm_sf_in", SF_THREAD_ID, "Schornsteinfeger Innung Kreuzberg",
+        SF_INBOUND_EMAIL_BODY, inbound_at,
+    )
+    await conn.execute(
+        "INSERT INTO theo.channel_messages (id, thread_id, direction, sender, "
+        "body, sent_at) VALUES ($1, $2, 'outbound', $3, $4, $5)",
+        "cm_sf_out", SF_THREAD_ID, "Theo Copilot (autonom)",
+        SF_AUTONOMOUS_REPLY_BODY, reply_at,
+    )
+
+    # The autonomous ticket itself
+    enrichment_json = json.dumps(SF_ENRICHMENT, default=str, ensure_ascii=False)
+    suggested = SF_ENRICHMENT["suggested_actions"]
+    suggested_json = json.dumps(suggested, default=str, ensure_ascii=False)
+    await conn.execute(
+        "INSERT INTO theo.tickets (id, unit_id, category, priority, opened_at, "
+        "closed_at, resolution, cost, vendor_id, full_text, source_thread_id, "
+        "classified_intent, status, enrichment, suggested_actions) "
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, "
+        "$14::jsonb, $15::jsonb)",
+        SF_TICKET_ID, "common", "Pflichtwartung", "Standard",
+        inbound_at, reply_at,
+        "Termin für 22.01.2026 bestätigt (autonom).",
+        0.00, "schornsteinfeger",
+        SF_INBOUND_EMAIL_BODY, SF_THREAD_ID,
+        "scheduling", "closed",
+        enrichment_json, suggested_json,
+    )
+
+    # Trace events
+    for step, kind, payload in SF_TRACE:
+        await conn.execute(
+            "INSERT INTO theo.trace_events (ticket_id, step, kind, payload) "
+            "VALUES ($1, $2, $3, $4::jsonb)",
+            SF_TICKET_ID, step, kind, json.dumps(payload, default=str),
+        )
+
+
 async def truncate(conn) -> None:
     """Wipe theo tables in dependency-safe order."""
     for table in TRUNCATE_ORDER:
@@ -514,11 +763,13 @@ async def main() -> None:
         async with conn.transaction():
             await truncate(conn)
             counts = await insert_all(conn)
+            await insert_schornsteinfeger(conn)
     await close_pool()
 
     print("--- seed complete ---")
     for table, n in counts.items():
         print(f"  {table:18s}  {n}")
+    print(f"  schornsteinfeger    1 autonomous ticket + 2 historical + thread + trace")
 
 
 if __name__ == "__main__":
