@@ -48,14 +48,33 @@ function e164ToJid(phone) {
   return digits ? `${digits}@s.whatsapp.net` : null;
 }
 
-function extractText(m) {
-  const msg = m.message;
+function extractText(msgOrWrapper) {
+  // Accepts either the full m.message object OR a wrapped inner message
+  // (ephemeralMessage / viewOnceMessage / etc). Recursive unwrap.
+  let msg = msgOrWrapper;
   if (!msg) return '';
+  // Some shapes pass the outer messageInfo as input — unwrap it first.
+  if (msg.message) msg = msg.message;
+  if (!msg) return '';
+
+  // Wrappers — recurse into .message
+  if (msg.ephemeralMessage?.message) return extractText(msg.ephemeralMessage.message);
+  if (msg.viewOnceMessage?.message) return extractText(msg.viewOnceMessage.message);
+  if (msg.viewOnceMessageV2?.message) return extractText(msg.viewOnceMessageV2.message);
+  if (msg.viewOnceMessageV2Extension?.message) return extractText(msg.viewOnceMessageV2Extension.message);
+  if (msg.documentWithCaptionMessage?.message) return extractText(msg.documentWithCaptionMessage.message);
+  if (msg.editedMessage?.message) return extractText(msg.editedMessage.message);
+
+  // Direct text variants
   if (msg.conversation) return msg.conversation;
   if (msg.extendedTextMessage?.text) return msg.extendedTextMessage.text;
   if (msg.imageMessage?.caption) return msg.imageMessage.caption;
   if (msg.videoMessage?.caption) return msg.videoMessage.caption;
   if (msg.documentMessage?.caption) return msg.documentMessage.caption;
+  if (msg.audioMessage?.caption) return msg.audioMessage.caption;
+  if (msg.templateButtonReplyMessage?.selectedDisplayText) return msg.templateButtonReplyMessage.selectedDisplayText;
+  if (msg.buttonsResponseMessage?.selectedDisplayText) return msg.buttonsResponseMessage.selectedDisplayText;
+  if (msg.listResponseMessage?.title) return msg.listResponseMessage.title;
   return '';
 }
 
@@ -69,7 +88,9 @@ async function forwardInbound(m, opts = {}) {
   }
   const body = extractText(m);
   if (!body) {
-    log.info({ from }, 'skipping non-text message');
+    // Log the message type keys so we can see what we missed
+    const keys = m.message ? Object.keys(m.message).slice(0, 8) : [];
+    log.info({ from, messageKeys: keys }, 'skipping non-text message');
     return;
   }
   const sentAt = new Date((m.messageTimestamp || Date.now() / 1000) * 1000).toISOString();
