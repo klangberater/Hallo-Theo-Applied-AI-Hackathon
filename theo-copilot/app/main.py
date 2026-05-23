@@ -19,7 +19,7 @@ sys.path.insert(0, str(ROOT))
 
 import streamlit as st
 
-from app import action_panel, enrichment_cards, inbox, ticket_detail
+from app import action_panel, demo_controls, enrichment_cards, inbox, ticket_detail
 from app.db_sync import fetch_ticket, fetch_ticket_list
 
 
@@ -674,6 +674,9 @@ with header_l:
 with header_r:
     if st.button("⟳ Aktualisieren", use_container_width=True):
         st.rerun()
+
+# Demo-Steuerung — sidebar with one-click scenario triggers (Köhler, Demir, reset).
+demo_controls.render()
 
 
 # ---------------------------------------------------------------------------
