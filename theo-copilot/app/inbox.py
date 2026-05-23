@@ -123,6 +123,7 @@ def render(
         # — main.py picks up ?t=<id> via st.query_params.
         row_html = (
             f'<a class="inbox-row-link" href="?t={escape(ticket_id)}" '
+            f'target="_self" '
             f'aria-label="Ticket {escape(tenant_name)} öffnen">'
             f'<div class="{row_class}">'
             '<div class="inbox-row-dot"></div>'
