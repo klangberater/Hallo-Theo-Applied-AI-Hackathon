@@ -16,8 +16,10 @@ jobs:
   deploy:
     name: SSH → pull → restart on getfletcher.ai
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v4
+
       - name: Configure SSH
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -45,6 +47,7 @@ jobs:
             echo "deploy_bridge=true"  >> "$GITHUB_OUTPUT"
             echo "deploy_intake=true"  >> "$GITHUB_OUTPUT"
             echo "deploy_app=true"     >> "$GITHUB_OUTPUT"
+            echo "deploy_frontend=true">> "$GITHUB_OUTPUT"
             exit 0
           fi
           changed=$(curl -sS -H "Authorization: token ${{ github.token }}" \
@@ -52,22 +55,43 @@ jobs:
             | python3 -c "import json,sys; d=json.load(sys.stdin); [print(f['filename']) for f in d.get('files', [])]")
           echo "Changed files:"
           echo "$changed"
-          # Bridge changes touch bridges/whatsapp/
           if echo "$changed" | grep -qE "^theo-copilot/bridges/whatsapp/"; then
             echo "deploy_bridge=true" >> "$GITHUB_OUTPUT"
           fi
-          # Intake = api intake + everything the agent loop touches
           if echo "$changed" | grep -qE "^theo-copilot/(intake|agent|infra|data|domain_wiki|scripts|pyproject)"; then
             echo "deploy_intake=true" >> "$GITHUB_OUTPUT"
           fi
-          # Streamlit picks up any app/ or shared infra change
           if echo "$changed" | grep -qE "^theo-copilot/(app|agent|infra|domain_wiki|pyproject)"; then
             echo "deploy_app=true" >> "$GITHUB_OUTPUT"
           fi
-          # Schema migration → flag, but don't auto-apply (destructive)
+          if echo "$changed" | grep -qE "^theo-copilot/frontend/"; then
+            echo "deploy_frontend=true" >> "$GITHUB_OUTPUT"
+          fi
           if echo "$changed" | grep -qE "^theo-copilot/infra/migrations/"; then
             echo "::warning::Schema migration changed — apply it manually on the server."
           fi
+
+      - name: Setup Node (for frontend build)
+        if: steps.changes.outputs.deploy_frontend == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Next.js frontend
+        if: steps.changes.outputs.deploy_frontend == 'true'
+        working-directory: theo-copilot/frontend
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+          ls -la out/
+
+      - name: Deploy frontend static files
+        if: steps.changes.outputs.deploy_frontend == 'true'
+        run: |
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o UserKnownHostsFile=~/.ssh/known_hosts" \
+            theo-copilot/frontend/out/ \
+            github-runner@87.106.213.53:/opt/fletcher/spa-v2/
 
       - name: Pull + restart on server
         env:
@@ -78,22 +102,19 @@ jobs:
           SSH="ssh -i ~/.ssh/deploy_key -o UserKnownHostsFile=~/.ssh/known_hosts \
               -o ConnectTimeout=10 github-runner@87.106.213.53"
 
-          # Single SSH session so the env vars travel together.
           $SSH "set -e
             cd /opt/fletcher/repo
             git fetch --quiet origin main
             git reset --hard --quiet origin/main
             echo '--- HEAD ---'; git log --oneline -1
 
-            # If bridges/whatsapp/package-lock.json changed, re-install Node deps.
             if [ '${DEPLOY_BRIDGE}' = 'true' ]; then
-              echo '--- npm install ---'
+              echo '--- npm install (bridge) ---'
               cd theo-copilot/bridges/whatsapp
               npm install --silent --no-audit --no-fund 2>&1 | tail -3
               cd /opt/fletcher/repo
             fi
 
-            # Python deps — only reinstall if pyproject.toml changed (cheap check).
             if [ '${DEPLOY_INTAKE}' = 'true' ] || [ '${DEPLOY_APP}' = 'true' ]; then
               cd theo-copilot
               if git diff HEAD@{1} HEAD --name-only 2>/dev/null | grep -q '^theo-copilot/pyproject.toml$'; then
@@ -103,7 +124,6 @@ jobs:
               cd /opt/fletcher/repo
             fi
 
-            # Restart only what's actually affected.
             [ '${DEPLOY_BRIDGE}' = 'true' ] && sudo /bin/systemctl restart theo-whatsapp-bridge.service && echo '✓ bridge restarted' || true
             [ '${DEPLOY_INTAKE}' = 'true' ] && sudo /bin/systemctl restart theo-intake.service && echo '✓ intake restarted' || true
             [ '${DEPLOY_APP}'    = 'true' ] && sudo /bin/systemctl restart theo-app.service    && echo '✓ app restarted'    || true
@@ -112,6 +132,7 @@ jobs:
       - name: Smoke test
         run: |
           sleep 3
-          curl -sS -o /dev/null -w "/inbox: HTTP %{http_code}\n"       https://getfletcher.ai/inbox/
-          curl -sS -o /dev/null -w "/api/health: HTTP %{http_code}\n"  https://getfletcher.ai/api/health
-          curl -sS -o /dev/null -w "/api/whatsapp/health: HTTP %{http_code}\n" https://getfletcher.ai/api/whatsapp/health
+          curl -sS -o /dev/null -w "/inbox:       HTTP %{http_code}\n"  https://getfletcher.ai/inbox/
+          curl -sS -o /dev/null -w "/inbox-v2:    HTTP %{http_code}\n"  https://getfletcher.ai/inbox-v2/  || true
+          curl -sS -o /dev/null -w "/api/health:  HTTP %{http_code}\n"  https://getfletcher.ai/api/health
+          curl -sS -o /dev/null -w "/api/tickets: HTTP %{http_code}\n"  https://getfletcher.ai/api/tickets

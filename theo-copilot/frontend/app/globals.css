@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* --- Base reset/typography --- */
+html, body {
+  background: theme('colors.paper.50');
+  color: theme('colors.paper.900');
+  font-family: theme('fontFamily.sans');
+  font-feature-settings: 'ss01', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  font-size: 17px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+* { box-sizing: border-box; }
+
+/* Scrollbars — subtle, paper-toned */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: theme('colors.paper.200');
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover { background: theme('colors.paper.300'); }
