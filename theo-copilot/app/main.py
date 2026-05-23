@@ -291,19 +291,26 @@ CSS = """
   .chip-neutral  { background: var(--paper-100); color: var(--paper-700); border-color: var(--paper-200); }
   .chip-teal     { background: var(--teal-50); color: var(--teal-800); border-color: var(--teal-200); }
 
-  /* CONTEXT CARD (right column) */
+  /* CONTEXT CARD (right column) — borderless sections separated by a
+     hairline divider; larger uppercase header so categories pop. */
   .ctx-card {
-    background: var(--surface-raised);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    padding: var(--space-4) var(--space-5);
-    margin-bottom: var(--space-4);
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0 0 var(--space-5);
+    margin-bottom: var(--space-5);
+    border-bottom: 1px solid var(--border-subtle);
   }
-  .ctx-card-elevated { box-shadow: var(--shadow-sm); }
+  .ctx-card:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+  .ctx-card-elevated { box-shadow: none; }
   .ctx-card-header {
-    font-size: var(--text-xs); font-weight: 600;
-    color: var(--text-tertiary);
-    text-transform: uppercase; letter-spacing: 0.06em;
+    font-size: var(--text-sm); font-weight: 700;
+    color: var(--teal-700);
+    text-transform: uppercase; letter-spacing: 0.08em;
     margin-bottom: var(--space-3);
     display: flex; align-items: center; gap: var(--space-2);
   }
