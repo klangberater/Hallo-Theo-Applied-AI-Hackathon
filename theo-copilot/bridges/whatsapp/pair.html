@@ -45,11 +45,24 @@
     <p class="hint">Der QR-Code wird automatisch erneuert.</p>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
   <script>
     const qrEl = document.getElementById("qr");
     const statusEl = document.getElementById("status");
     let lastQrText = "";
+
+    function renderQR(text) {
+      // qrcode-generator: pick a type that fits 230 chars at 'L' error correction.
+      // Type 0 = auto. Returns an SVG/IMG via createImgTag / createSvgTag.
+      const qr = qrcode(0, "L");
+      qr.addData(text);
+      qr.make();
+      // cellSize 6 px → ~240px image for typical WhatsApp QR
+      qrEl.innerHTML = qr.createImgTag(6, 8);
+      // Inline-block image needs explicit width to fill container
+      const img = qrEl.querySelector("img");
+      if (img) { img.style.width = "100%"; img.style.height = "auto"; }
+    }
 
     async function tick() {
       try {
@@ -68,9 +81,7 @@
 
         if (qr && qr !== lastQrText) {
           lastQrText = qr;
-          // toDataURL returns a base64 PNG — works in every browser, no canvas APIs.
-          const dataUrl = await QRCode.toDataURL(qr, { width: 240, margin: 1, errorCorrectionLevel: "L" });
-          qrEl.innerHTML = "<img src='" + dataUrl + "' alt='QR' style='width:100%;height:auto'>";
+          renderQR(qr);
           statusEl.textContent = "⏳ wartet auf Scan…";
           statusEl.className = "status pairing";
         } else if (!qr && !lastQrText) {
