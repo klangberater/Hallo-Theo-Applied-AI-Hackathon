@@ -62,17 +62,17 @@ def render(
     tickets: list[dict],
     selected_id: str | None,
     opened_ids: set[str],
-) -> str | None:
-    """Render ticket rows. Returns newly-selected id if changed."""
+) -> None:
+    """Render ticket rows. Each row is an <a href="?t=<id>"> link;
+    main.py reads the query param to set the active ticket."""
     if not tickets:
         st.markdown(
             "<div class='empty-state' style='padding:var(--space-8)'>"
             "Keine Tickets.</div>",
             unsafe_allow_html=True,
         )
-        return None
+        return
 
-    new_selection: str | None = None
     for t in tickets:
         ticket_id = t["id"]
         is_selected = ticket_id == selected_id
@@ -119,7 +119,11 @@ def render(
         # Single-line HTML: Streamlit's markdown parser treats 4+ space
         # indents as code blocks and breaks HTML-block context on empty
         # interpolations (priority/mode_chip can be ""). Keep it on one line.
+        # Whole row is wrapped in an <a> so the click target is browser-native
+        # — main.py picks up ?t=<id> via st.query_params.
         row_html = (
+            f'<a class="inbox-row-link" href="?t={escape(ticket_id)}" '
+            f'aria-label="Ticket {escape(tenant_name)} öffnen">'
             f'<div class="{row_class}">'
             '<div class="inbox-row-dot"></div>'
             '<div class="inbox-row-body">'
@@ -136,15 +140,7 @@ def render(
             '</div>'
             f'<div class="inbox-row-preview">{escape(preview)}</div>'
             '</div></div>'
+            '</a>'
         )
 
-        with st.container(key=f"ticket-row-{ticket_id}"):
-            st.markdown(row_html, unsafe_allow_html=True)
-            if st.button(
-                f"Ticket {tenant_name} öffnen",
-                key=f"sel_{ticket_id}",
-                use_container_width=True,
-            ):
-                new_selection = ticket_id
-
-    return new_selection
+        st.markdown(row_html, unsafe_allow_html=True)

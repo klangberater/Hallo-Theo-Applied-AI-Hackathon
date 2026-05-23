@@ -461,45 +461,19 @@ CSS = """
     background: var(--teal-700) !important;
     border-color: var(--teal-700) !important;
   }
-  /* Inbox rows: visual card + invisible button overlay (whole row clickable). */
-  [class*="st-key-ticket-row-"] {
-    position: relative;
+  /* Inbox rows: each row is an <a> link to ?t=<id>. Whole row is the
+     browser-native click target — no Streamlit button needed. */
+  .inbox-row-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
   }
-  [class*="st-key-ticket-row-"] [data-testid="stMarkdownContainer"] {
-    pointer-events: none;
-  }
-  [class*="st-key-ticket-row-"] .inbox-row {
-    pointer-events: none;
-  }
-  [class*="st-key-ticket-row-"] [data-testid="stVerticalBlock"] {
-    gap: 0 !important;
-  }
-  [class*="st-key-ticket-row-"] .stButton {
-    position: absolute;
-    inset: 0;
-    margin: 0 !important;
-    z-index: 2;
-  }
-  [class*="st-key-ticket-row-"] .stButton > button {
-    width: 100%;
-    height: 100%;
-    min-height: 0 !important;
-    padding: 0 !important;
-    border: none !important;
-    background: transparent !important;
-    color: transparent !important;
-    box-shadow: none !important;
-    cursor: pointer;
-  }
-  [class*="st-key-ticket-row-"] .stButton > button:hover {
-    background: transparent !important;
-  }
-  [class*="st-key-ticket-row-"] .stButton > button:focus-visible {
+  .inbox-row-link:focus-visible {
     outline: 2px solid var(--border-focus);
     outline-offset: -2px;
+    border-radius: var(--radius-sm);
   }
-  /* Drive the card hover from the container, since the overlay button absorbs the pointer. */
-  [class*="st-key-ticket-row-"]:hover .inbox-row:not(.selected) {
+  .inbox-row-link:hover .inbox-row:not(.selected) {
     background: var(--paper-50);
   }
 
@@ -569,6 +543,13 @@ if "show_trace" not in st.session_state:
 if "opened_ticket_ids" not in st.session_state:
     st.session_state.opened_ticket_ids = set()
 
+# Click target for inbox rows is an <a href="?t=<id>"> link.
+# Pick up the new selection from the URL before rendering anything.
+_qp_ticket = st.query_params.get("t")
+if _qp_ticket and _qp_ticket != st.session_state.selected_ticket_id:
+    st.session_state.selected_ticket_id = _qp_ticket
+    st.session_state.opened_ticket_ids.add(_qp_ticket)
+
 
 # ---------------------------------------------------------------------------
 # Header
@@ -596,15 +577,11 @@ col_list, col_detail = st.columns([1, 3], gap="medium")
 with col_list:
     st.markdown("<p class='section-label'>Inbox</p>", unsafe_allow_html=True)
     tickets = fetch_ticket_list()
-    selected_id = inbox.render(
+    inbox.render(
         tickets,
         st.session_state.selected_ticket_id,
         st.session_state.opened_ticket_ids,
     )
-    if selected_id and selected_id != st.session_state.selected_ticket_id:
-        st.session_state.selected_ticket_id = selected_id
-        st.session_state.opened_ticket_ids.add(selected_id)
-        st.rerun()
 
 
 # Right — detail + enrichment stacked
