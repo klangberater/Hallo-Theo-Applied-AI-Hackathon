@@ -558,45 +558,71 @@ CSS = """
   }
 
   /* INDEPENDENT PANE SCROLLING ----------------------------------------
-     The layout columns sit in st.container(key="main-layout") so we can
-     give them a fixed height (viewport minus header) and let each leaf
-     column scroll on its own. */
-  .st-key-main-layout > [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] {
-    height: calc(100vh - 130px);
-    align-items: stretch;
+     Lock the whole app to viewport height so the page itself can't
+     scroll; the inbox list, ticket detail, and context panes each
+     handle their own scroll. */
+  html, body {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
   }
-  /* Outer columns (col_list, col_detail) fill the layout height. */
-  .st-key-main-layout > [data-testid="stVerticalBlock"]
-      > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
-    height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-right: var(--space-2);
+  [data-testid="stAppViewContainer"] {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
   }
-  /* Inner horizontal block (sub_detail + sub_context) fills col_detail. */
-  .st-key-main-layout [data-testid="stColumn"]
-      > [data-testid="stVerticalBlock"]
-      > [data-testid="stHorizontalBlock"] {
-    height: 100%;
-    align-items: stretch;
+  [data-testid="stMain"] {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
   }
-  /* col_detail itself shouldn't scroll — the inner subpanes do. */
-  .st-key-main-layout [data-testid="stColumn"]:has(
-      > [data-testid="stVerticalBlock"]
-      > [data-testid="stHorizontalBlock"]
-  ) {
-    overflow: hidden;
+  /* The block-container becomes a flex column: header on top,
+     main-layout fills the rest. */
+  .block-container,
+  [data-testid="stMainBlockContainer"] {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding-bottom: var(--space-3) !important;
   }
-  /* Subpane columns scroll independently. */
-  .st-key-main-layout [data-testid="stColumn"]
-      > [data-testid="stVerticalBlock"]
-      > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
-    height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-right: var(--space-2);
+  /* main-layout takes remaining space below the header. */
+  .st-key-main-layout {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
   }
-  /* Thin scrollbars to match the paper aesthetic. */
+  /* Any horizontal block inside main-layout stretches to fill height. */
+  .st-key-main-layout [data-testid="stHorizontalBlock"] {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    align-items: stretch !important;
+    height: 100% !important;
+  }
+  /* Each column inside main-layout scrolls on its own. */
+  .st-key-main-layout [data-testid="stColumn"] {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+  /* If a column contains a nested horizontal block (col_detail does),
+     hide its overflow so only the inner subpanes scroll. */
+  .st-key-main-layout [data-testid="stColumn"]:has([data-testid="stHorizontalBlock"]) {
+    overflow: hidden !important;
+  }
+  /* Column's vertical-block wrapper takes full height so children stretch. */
+  .st-key-main-layout [data-testid="stColumn"] > [data-testid="stVerticalBlock"] {
+    height: 100% !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  /* Thin paper-toned scrollbars. */
   .st-key-main-layout [data-testid="stColumn"] {
     scrollbar-width: thin;
     scrollbar-color: var(--paper-300) transparent;
