@@ -91,7 +91,7 @@ function humanizeTrace(e: TraceEvent): string | null {
       if (p.autonomy_mode === 'autonomous_done')
         return `Entscheidung: autonom ausführen — alle Sicherheits-Schranken erfüllt.`;
       if (p.autonomy_mode === 'bundle_approve')
-        return `Entscheidung: Bündel-Freigabe vorschlagen.`;
+        return `Entscheidung: Aktionen-Paket zur Freigabe vorschlagen.`;
       return `Anreicherungs-Paket erstellt.`;
     case 'llm_call_started':
     case 'llm_call_completed':
@@ -256,7 +256,7 @@ function BundleApprove({
           disabled={pending}
           className="rounded-md bg-teal-600 px-5 py-2.5 text-base font-medium text-white shadow-sm hover:bg-teal-700 disabled:opacity-50 transition"
         >
-          {pending ? 'Wird ausgeführt…' : 'Bündel umsetzen'}
+          {pending ? 'Wird ausgeführt…' : 'Aktionen umsetzen'}
         </button>
         <button
           disabled={pending}
@@ -270,7 +270,7 @@ function BundleApprove({
         <div className={`mt-3 rounded-md border-l-4 px-4 py-3 text-sm ${
           result.ok ? 'border-green-500 bg-green-50 text-green-800' : 'border-red-500 bg-red-50 text-red-700'
         }`}>
-          {result.ok ? `✓ Bündel ausgeführt.` : `Fehler: ${result.error}`}
+          {result.ok ? `✓ Aktionen ausgeführt.` : `Fehler: ${result.error}`}
           {result.warnings?.map((w, i) => <div key={i} className="text-amber-700">⚠ {w}</div>)}
         </div>
       )}
