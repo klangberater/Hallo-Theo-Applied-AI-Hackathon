@@ -116,27 +116,27 @@ def render(
                 f"<span class='inbox-row-address'>{address_text}</span>"
             )
 
-        row_html = f"""
-        <div class="{row_class}">
-          <div class="inbox-row-dot"></div>
-          <div class="inbox-row-body">
-            <div class="inbox-row-top">
-              <span class="inbox-row-sender">{escape(tenant_name)}</span>
-              <div class="inbox-row-meta">
-                <span class="inbox-row-channel" title="{channel}">{channel_icon}</span>
-                {priority_html}
-                <span class="inbox-row-time">{escape(ago)}</span>
-              </div>
-            </div>
-            <div class="inbox-row-subject">
-              {''.join(subject_parts)}
-              {incidents_html}
-              {mode_chip}
-            </div>
-            <div class="inbox-row-preview">{escape(preview)}</div>
-          </div>
-        </div>
-        """
+        # Single-line HTML: Streamlit's markdown parser treats 4+ space
+        # indents as code blocks and breaks HTML-block context on empty
+        # interpolations (priority/mode_chip can be ""). Keep it on one line.
+        row_html = (
+            f'<div class="{row_class}">'
+            '<div class="inbox-row-dot"></div>'
+            '<div class="inbox-row-body">'
+            '<div class="inbox-row-top">'
+            f'<span class="inbox-row-sender">{escape(tenant_name)}</span>'
+            '<div class="inbox-row-meta">'
+            f'<span class="inbox-row-channel" title="{channel}">'
+            f'{channel_icon}</span>'
+            f'{priority_html}'
+            f'<span class="inbox-row-time">{escape(ago)}</span>'
+            '</div></div>'
+            '<div class="inbox-row-subject">'
+            f'{"".join(subject_parts)}{incidents_html}{mode_chip}'
+            '</div>'
+            f'<div class="inbox-row-preview">{escape(preview)}</div>'
+            '</div></div>'
+        )
 
         with st.container(key=f"ticket-row-{ticket_id}"):
             st.markdown(row_html, unsafe_allow_html=True)
