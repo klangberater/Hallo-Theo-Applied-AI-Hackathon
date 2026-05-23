@@ -8,6 +8,7 @@ See: docs/PRODUCT_SPEC.md §2.4
 """
 from __future__ import annotations
 
+import json
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -38,8 +39,26 @@ _pool: asyncpg.Pool | None = None
 
 
 async def _init_connection(conn: asyncpg.Connection) -> None:
-    """Run on every fresh connection. Pins the search_path."""
+    """Run on every fresh connection: pin search_path + auto-decode JSON(B).
+
+    Without these codecs, asyncpg returns jsonb columns as raw strings
+    (psycopg2 does the decode for free, hence why the Streamlit path worked
+    without them). The FastAPI/Next.js path consumes the FastAPI response
+    directly, so unconverted strings break clients that expect objects.
+    """
     await conn.execute("SET search_path TO theo, public")
+    await conn.set_type_codec(
+        "jsonb",
+        encoder=json.dumps,
+        decoder=json.loads,
+        schema="pg_catalog",
+    )
+    await conn.set_type_codec(
+        "json",
+        encoder=json.dumps,
+        decoder=json.loads,
+        schema="pg_catalog",
+    )
 
 
 async def get_pool() -> asyncpg.Pool:
