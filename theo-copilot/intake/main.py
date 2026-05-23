@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 
 from agent.enrichment_loop import enrich_ticket
 from infra.db import close_pool, get_pool
+from intake.api_routes import router as api_router
 from intake.intake_service import handle_inbound
 
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
@@ -34,6 +35,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Theo Copilot Intake", lifespan=lifespan)
+app.include_router(api_router)
 
 
 # ---------------------------------------------------------------------------
