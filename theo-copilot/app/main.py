@@ -595,32 +595,70 @@ CSS = """
     flex-direction: column !important;
     overflow: hidden !important;
   }
-  /* Any horizontal block inside main-layout stretches to fill height. */
-  .st-key-main-layout [data-testid="stHorizontalBlock"] {
+  /* Outer horizontal block (col_list + col_detail) — explicit path so
+     we don't accidentally match action_panel's button columns deeper. */
+  .st-key-main-layout > [data-testid="stHorizontalBlock"] {
     flex: 1 1 0% !important;
     min-height: 0 !important;
     align-items: stretch !important;
     height: 100% !important;
   }
-  /* Each column inside main-layout scrolls on its own. */
-  .st-key-main-layout [data-testid="stColumn"] {
+  /* Outer columns: col_list (scrolls) and col_detail (hidden — its
+     subpanes scroll instead). */
+  .st-key-main-layout
+      > [data-testid="stHorizontalBlock"]
+      > [data-testid="stColumn"] {
     height: 100% !important;
     max-height: 100% !important;
     min-height: 0 !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
   }
-  /* If a column contains a nested horizontal block (col_detail does),
-     hide its overflow so only the inner subpanes scroll. */
-  .st-key-main-layout [data-testid="stColumn"]:has([data-testid="stHorizontalBlock"]) {
+  /* col_detail wraps a nested horizontal block — hide its own overflow
+     so the inner sub_detail / sub_context handle scroll, not col_detail. */
+  .st-key-main-layout
+      > [data-testid="stHorizontalBlock"]
+      > [data-testid="stColumn"]:has(
+        > [data-testid="stVerticalBlock"]
+        > [data-testid="stHorizontalBlock"]
+      ) {
     overflow: hidden !important;
   }
-  /* Column's vertical-block wrapper takes full height so children stretch. */
-  .st-key-main-layout [data-testid="stColumn"] > [data-testid="stVerticalBlock"] {
+  /* col_detail's vertical-block wrapper: stretch so the inner
+     horizontal block can take 100% height. */
+  .st-key-main-layout
+      > [data-testid="stHorizontalBlock"]
+      > [data-testid="stColumn"]
+      > [data-testid="stVerticalBlock"] {
     height: 100% !important;
     min-height: 0 !important;
     display: flex !important;
     flex-direction: column !important;
+  }
+  /* Nested horizontal block: sub_detail + sub_context. */
+  .st-key-main-layout
+      > [data-testid="stHorizontalBlock"]
+      > [data-testid="stColumn"]
+      > [data-testid="stVerticalBlock"]
+      > [data-testid="stHorizontalBlock"] {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    align-items: stretch !important;
+    height: 100% !important;
+  }
+  /* Subpane columns: sub_detail (conversation + actions) and
+     sub_context (enrichment cards) each scroll on their own. */
+  .st-key-main-layout
+      > [data-testid="stHorizontalBlock"]
+      > [data-testid="stColumn"]
+      > [data-testid="stVerticalBlock"]
+      > [data-testid="stHorizontalBlock"]
+      > [data-testid="stColumn"] {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
   }
   /* Thin paper-toned scrollbars. */
   .st-key-main-layout [data-testid="stColumn"] {
