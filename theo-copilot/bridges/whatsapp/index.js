@@ -34,6 +34,8 @@ let bridgeReady = false;
 let lastQr = null;
 let ownJid = null;     // e.g. "493012345678:64@s.whatsapp.net"
 let ownNumber = null;  // e.g. "+493012345678"
+let ownPnDigits = null; // "493012345678"
+let ownLidDigits = null; // "150010406641734" — LID, different from phone number
 
 function jidToE164(jid) {
   // "493061523 81@s.whatsapp.net" → "+49306152381"
@@ -79,7 +81,11 @@ function extractText(msgOrWrapper) {
 }
 
 async function forwardInbound(m, opts = {}) {
-  const from = jidToE164(m.key.remoteJid);
+  // For self-chat over LID, remoteJid is the LID (not the phone number).
+  // Override with our own phone so the intake's tenant-by-phone lookup works.
+  const from = opts.selfChat && ownNumber
+    ? ownNumber
+    : jidToE164(m.key.remoteJid);
   if (!from) return;
   // Skip group chats for the demo
   if (m.key.remoteJid?.endsWith('@g.us')) {
@@ -140,11 +146,15 @@ async function startSocket() {
       bridgeReady = true;
       lastQr = null;
       ownJid = sock.user?.id || null;
+      const lidRaw = sock.user?.lid || null;
       if (ownJid) {
-        const digits = ownJid.split(':')[0].split('@')[0].replace(/[^\d]/g, '');
-        ownNumber = digits ? `+${digits}` : null;
+        ownPnDigits = ownJid.split(':')[0].split('@')[0].replace(/[^\d]/g, '');
+        ownNumber = ownPnDigits ? `+${ownPnDigits}` : null;
       }
-      log.info({ ownNumber }, 'WhatsApp connection OPEN');
+      if (lidRaw) {
+        ownLidDigits = lidRaw.split(':')[0].split('@')[0].replace(/[^\d]/g, '');
+      }
+      log.info({ ownNumber, ownJid, lidRaw, ownLidDigits }, 'WhatsApp connection OPEN');
     }
     if (connection === 'close') {
       bridgeReady = false;
@@ -163,9 +173,17 @@ async function startSocket() {
     if (type !== 'notify') return;
     for (const m of messages) {
       const remoteDigits = (m.key.remoteJid || '').split('@')[0].replace(/[^\d]/g, '');
-      const ownDigits = (ownNumber || '').replace(/[^\d]/g, '');
-      const isSelfChat = m.key.fromMe && ownDigits && remoteDigits === ownDigits;
-      if (m.key.fromMe && !isSelfChat) continue;  // skip our outbound to others
+      const isLid = (m.key.remoteJid || '').endsWith('@lid');
+      // Self-chat detection: remote matches our PN OR our LID
+      const isSelfChat = m.key.fromMe && (
+        (ownPnDigits && remoteDigits === ownPnDigits) ||
+        (ownLidDigits && remoteDigits === ownLidDigits)
+      );
+      log.info({
+        remoteJid: m.key.remoteJid, fromMe: m.key.fromMe,
+        isLid, isSelfChat, remoteDigits,
+      }, 'incoming message');
+      if (m.key.fromMe && !isSelfChat) continue;
       forwardInbound(m, { selfChat: isSelfChat }).catch(err => log.error({ err: err.message }, 'forward error'));
     }
   });
