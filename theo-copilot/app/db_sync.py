@@ -128,8 +128,46 @@ def fetch_trace_events(ticket_id: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def execute_send_whatsapp(thread_id: str, body: str) -> None:
+def execute_send_whatsapp(thread_id: str, body: str) -> dict:
+    """Send via Baileys bridge if reachable, else log-only (DB insert).
+
+    Always inserts an outbound row so the Streamlit UI shows the reply
+    immediately. If the Baileys bridge is up, also fires the real WhatsApp
+    send. Returns {sent_to_whatsapp: bool, error?: str}.
+    """
+    import requests
     conn = get_conn()
+    sent_to_whatsapp = False
+    error = None
+
+    # Find the recipient phone via the channel thread → tenant
+    recipient_phone: str | None = None
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT tn.phone FROM theo.channel_threads ct "
+            "JOIN theo.tenants tn ON tn.id = ct.tenant_id WHERE ct.id = %s",
+            (thread_id,),
+        )
+        row = cur.fetchone()
+        if row:
+            recipient_phone = row[0]
+
+    bridge_url = os.environ.get("WHATSAPP_BRIDGE_URL", "http://127.0.0.1:8003")
+    if recipient_phone:
+        try:
+            r = requests.post(
+                f"{bridge_url}/send",
+                json={"to": recipient_phone, "body": body},
+                timeout=8,
+            )
+            if r.ok:
+                sent_to_whatsapp = True
+            else:
+                error = f"bridge {r.status_code}: {r.text[:200]}"
+        except Exception as e:  # noqa: BLE001
+            error = f"bridge unreachable: {e}"
+
+    # Always record the outbound message in our channel log
     with conn.cursor() as cur:
         cur.execute(
             "INSERT INTO theo.channel_messages (id, thread_id, direction, sender, "
@@ -141,6 +179,9 @@ def execute_send_whatsapp(thread_id: str, body: str) -> None:
             "UPDATE theo.channel_threads SET last_message_at = now() WHERE id = %s",
             (thread_id,),
         )
+
+    return {"sent_to_whatsapp": sent_to_whatsapp, "error": error,
+            "recipient": recipient_phone}
 
 
 def execute_dispatch_vendor(vendor_id: str, ticket_id: str, scope: str, urgency: str) -> None:

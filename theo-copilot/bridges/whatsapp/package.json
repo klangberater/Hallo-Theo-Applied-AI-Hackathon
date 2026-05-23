@@ -1,0 +1,20 @@
+{
+  "name": "theo-whatsapp-bridge",
+  "version": "0.0.1",
+  "description": "Baileys-based WhatsApp bridge for Theo Copilot. Inbound → POST /api/webhook/whatsapp; outbound via POST /send.",
+  "type": "module",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.0",
+    "express": "^4.21.0",
+    "pino": "^9.0.0",
+    "qrcode-terminal": "^0.12.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
