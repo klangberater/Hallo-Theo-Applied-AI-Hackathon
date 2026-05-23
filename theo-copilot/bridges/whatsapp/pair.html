@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Theo Copilot — WhatsApp Pairing</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+           background: #0a0a0a; color: #f5f5f5; min-height: 100vh; margin: 0;
+           display: grid; place-items: center; padding: 1.5rem; }
+    main { max-width: 32rem; width: 100%; text-align: center; }
+    h1 { font-size: 1.5rem; margin: 0 0 0.6rem; letter-spacing: -0.01em; }
+    .step { color: #a1a1aa; font-size: 0.95rem; line-height: 1.5; }
+    .qr-wrap {
+      background: #fff; border-radius: 12px; padding: 1rem;
+      margin: 1.5rem auto; width: 16rem; height: 16rem; display: grid;
+      place-items: center;
+    }
+    .qr-wrap canvas, .qr-wrap img { max-width: 100%; height: auto; }
+    .status { font-size: 0.85rem; padding: 0.5rem 0.9rem; border-radius: 999px;
+              display: inline-block; }
+    .status.pairing { background: rgba(251,191,36,0.1); color: #fbbf24;
+                      border: 1px solid rgba(251,191,36,0.3); }
+    .status.ready   { background: rgba(16,185,129,0.12); color: #10b981;
+                      border: 1px solid rgba(16,185,129,0.3); }
+    .hint { color: #71717a; font-size: 0.8rem; margin-top: 1rem; }
+    .step ol { text-align: left; max-width: 22rem; margin: 0.5rem auto; padding-left: 1.4rem; }
+    .step ol li { margin: 0.3rem 0; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Theo Copilot — WhatsApp Pairing</h1>
+    <p class="step">
+      <ol>
+        <li>Auf dem Telefon: <strong>WhatsApp → Einstellungen → Verknüpfte Geräte</strong></li>
+        <li><strong>„Gerät hinzufügen"</strong> tippen</li>
+        <li>QR-Code unten scannen</li>
+      </ol>
+    </p>
+
+    <div class="qr-wrap"><div id="qr"></div></div>
+    <div id="status" class="status pairing">⏳ wartet auf Scan…</div>
+
+    <p class="hint">Der QR-Code wird automatisch erneuert.</p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script>
+    const qrEl = document.getElementById("qr");
+    const statusEl = document.getElementById("status");
+    let lastQrText = "";
+
+    async function tick() {
+      try {
+        const r = await fetch("/api/whatsapp/qr", { cache: "no-store" });
+        const { qr, paired } = await r.json();
+
+        if (paired) {
+          statusEl.textContent = "✓ Gerät erfolgreich verknüpft";
+          statusEl.className = "status ready";
+          qrEl.innerHTML = "<div style='color:#10b981;font-size:3rem;line-height:16rem'>✓</div>";
+          return;
+        }
+
+        if (qr && qr !== lastQrText) {
+          lastQrText = qr;
+          qrEl.innerHTML = "";
+          await QRCode.toCanvas(qrEl, qr, { width: 240, margin: 1 });
+        } else if (!qr) {
+          qrEl.innerHTML = "<div style='color:#71717a'>kein QR verfügbar</div>";
+        }
+      } catch (err) {
+        statusEl.textContent = "Fehler beim Laden — neu versuchen…";
+      }
+    }
+
+    tick();
+    setInterval(tick, 2500);
+  </script>
+</body>
+</html>
