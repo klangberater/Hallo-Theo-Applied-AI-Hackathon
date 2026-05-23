@@ -222,7 +222,7 @@ TOOL_SCHEMAS: list[dict] = [
             "type": "object",
             "properties": {
                 "query": {"type": "string", "description": "Free-text question, e.g. 'heating issues'"},
-                "group_id": {"type": "string", "description": "e.g. 'tenant:koehler' or 'property:zossener_47'"},
+                "group_id": {"type": "string", "description": "e.g. 'tenant_koehler' or 'property_zossener_47' (underscore separator, no colons)"},
                 "num_results": {"type": "integer", "default": 10},
             },
             "required": ["query", "group_id"],

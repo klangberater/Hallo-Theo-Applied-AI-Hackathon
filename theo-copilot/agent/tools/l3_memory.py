@@ -145,7 +145,7 @@ async def query_temporal_memory(
             pass
 
     # Tier 3: hand-curated stub (Köhler only)
-    if group_id.startswith("tenant:koehler") or group_id == "tenant:koehler_we4l":
+    if "koehler" in group_id.lower():
         return _annotate(_KOEHLER_FACTS[:num_results], "stub")
     return []
 
@@ -162,7 +162,7 @@ async def get_entity_timeline(entity_name: str, group_id: str) -> list[dict]:
             print(f"[l3_memory] graphiti unavailable, falling back: {e}")
 
     # Stub timeline for Köhler heating
-    if group_id.startswith("tenant:koehler") and "heizung" in entity_name.lower():
+    if "koehler" in group_id.lower() and "heizung" in entity_name.lower():
         return _annotate([
             {"date": str(date(2024, 10, 12)),
              "fact": "Wohnzimmer-Heizkörper nicht warm; Druck zu niedrig; Bergmann empfiehlt Thermostat-Prüfung."},

@@ -119,15 +119,16 @@ async def get_graphiti() -> Any:
 
 
 def tenant_group(tenant_id: str) -> str:
-    return f"tenant:{tenant_id}"
+    # graphiti-core 0.29 rejects ':' in group_id — alphanumeric / dash / underscore only.
+    return f"tenant_{tenant_id}"
 
 
 def property_group(property_id: str) -> str:
-    return f"property:{property_id}"
+    return f"property_{property_id}"
 
 
 def vendor_group(vendor_id: str) -> str:
-    return f"vendor:{vendor_id}"
+    return f"vendor_{vendor_id}"
 
 
 # ---------------------------------------------------------------------------
