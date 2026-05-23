@@ -67,13 +67,18 @@ def fetch_ticket_list(limit: int = 50) -> list[dict]:
                t.enrichment->'prior_incidents'->>'count' AS pattern_count,
                t.enrichment->>'autonomy_mode' AS autonomy_mode,
                u.label AS unit_label,
-               COALESCE(tn.name, 'unknown') AS tenant_name,
+               -- Prefer the sender (channel_thread.tenant_id) over the
+               -- unit-resident (lease-tenant). For most tickets they're the
+               -- same; for vendor-side mail (Schornsteinfeger, etc.) only
+               -- the channel_thread has the right party.
+               COALESCE(tn_ct.name, tn_lease.name, 'unknown') AS tenant_name,
                ct.channel
         FROM theo.tickets t
         LEFT JOIN theo.units u ON u.id = t.unit_id
         LEFT JOIN theo.leases l ON l.unit_id = u.id AND l.status = 'active'
-        LEFT JOIN theo.tenants tn ON tn.id = l.tenant_id
+        LEFT JOIN theo.tenants tn_lease ON tn_lease.id = l.tenant_id
         LEFT JOIN theo.channel_threads ct ON ct.id = t.source_thread_id
+        LEFT JOIN theo.tenants tn_ct ON tn_ct.id = ct.tenant_id
         ORDER BY
             -- autonomous tickets sort to the top (already done; quick scan)
             CASE WHEN t.enrichment->>'autonomy_mode' = 'autonomous_done'
@@ -90,16 +95,23 @@ def fetch_ticket(ticket_id: str) -> dict | None:
         """
         SELECT t.*,
                u.label AS unit_label, u.qm AS unit_qm,
-               p.id AS property_id, p.name AS property_name, p.address AS property_address,
-               tn.id AS tenant_id, tn.name AS tenant_name,
-               tn.email AS tenant_email, tn.phone AS tenant_phone,
-               tn.metadata AS tenant_metadata,
+               p.id AS property_id, p.name AS property_name,
+               p.address AS property_address,
+               -- Prefer the actual sender (channel_thread.tenant_id) so vendor-
+               -- side tickets show the vendor, not the unit's resident.
+               COALESCE(tn_ct.id, tn_lease.id) AS tenant_id,
+               COALESCE(tn_ct.name, tn_lease.name) AS tenant_name,
+               COALESCE(tn_ct.email, tn_lease.email) AS tenant_email,
+               COALESCE(tn_ct.phone, tn_lease.phone) AS tenant_phone,
+               COALESCE(tn_ct.metadata, tn_lease.metadata) AS tenant_metadata,
                l.rent_cold AS lease_rent_cold, l.start_date AS lease_start
         FROM theo.tickets t
         LEFT JOIN theo.units u ON u.id = t.unit_id
         LEFT JOIN theo.properties p ON p.id = u.property_id
         LEFT JOIN theo.leases l ON l.unit_id = u.id AND l.status = 'active'
-        LEFT JOIN theo.tenants tn ON tn.id = l.tenant_id
+        LEFT JOIN theo.tenants tn_lease ON tn_lease.id = l.tenant_id
+        LEFT JOIN theo.channel_threads ct ON ct.id = t.source_thread_id
+        LEFT JOIN theo.tenants tn_ct ON tn_ct.id = ct.tenant_id
         WHERE t.id = %s
         """,
         (ticket_id,),
