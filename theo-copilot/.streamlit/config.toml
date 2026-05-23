@@ -1,6 +1,8 @@
+# Theme tokens from docs/fletcher-design-system.html
 [theme]
-base = "dark"
-backgroundColor = "#0e0e0e"
-secondaryBackgroundColor = "#1a1a1a"
-textColor = "#f5f5f5"
-primaryColor = "#fbbf24"
+base                     = "light"
+primaryColor             = "#0F8E78"   # teal-600 (action-primary-bg)
+backgroundColor          = "#FBFAF7"   # paper-50  (surface-canvas)
+secondaryBackgroundColor = "#FFFFFF"   # surface-raised
+textColor                = "#161513"   # paper-900 (text-primary)
+font                     = "sans serif"

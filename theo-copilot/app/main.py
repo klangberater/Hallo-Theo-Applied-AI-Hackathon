@@ -1,9 +1,9 @@
 """Streamlit entry point — Theo Copilot operations inbox.
 
-Three-column layout per PRODUCT_SPEC §8 View 2:
-- Left:   ticket list (inbox)
-- Middle: conversation + suggested actions
-- Right:  enrichment cards
+Layout per PRODUCT_SPEC §8 View 2 + Fletcher design system inbox pattern:
+- Left:   ticket list (.inbox-list)
+- Middle: detail header + conversation + suggested actions (.inbox-detail)
+- Right:  enrichment context cards (.inbox-context)
 
 Run:
     cd theo-copilot && streamlit run app/main.py \\
@@ -24,52 +24,383 @@ from app.db_sync import fetch_ticket, fetch_ticket_list
 
 
 st.set_page_config(
-    page_title="Theo Copilot — Operations Inbox",
+    page_title="Fletcher — Operations Inbox",
     page_icon="🏢",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
 
+# Tokens lifted from docs/fletcher-design-system.html.
+# CSS variables let every component reference them consistently.
 CSS = """
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
 <style>
-    .block-container { padding-top: 1.5rem; padding-bottom: 1rem; max-width: 100% !important; }
-    [data-testid="stHeader"] { display: none; }
-    .ticket-row {
-        padding: 0.6rem 0.8rem;
-        border-radius: 8px;
-        border: 1px solid #2a2a2a;
-        margin-bottom: 0.4rem;
-        background: #141414;
-        color: #f5f5f5;
-        cursor: pointer;
-    }
-    .ticket-row.selected { border-color: #fbbf24; background: #1a1a1a; }
-    .ticket-row .meta { color: #71717a; font-size: 0.75rem; }
-    .ticket-row .title { color: #f5f5f5; font-weight: 500; }
-    .pattern-flag { color: #fbbf24; font-size: 0.8rem; }
-    .priority-DRINGEND { color: #ef4444; font-weight: 600; }
-    .priority-Hoch { color: #f97316; font-weight: 500; }
-    .priority-Standard { color: #71717a; }
-    .source-pill {
-        display: inline-block; font-size: 0.7rem; padding: 0.1rem 0.5rem;
-        border-radius: 999px; background: #27272a; color: #a1a1aa;
-        margin-left: 0.4rem;
-    }
-    .source-pill.graphiti { background: #4c1d95; color: #ddd6fe; }
-    .source-pill.stub { background: #422006; color: #fde68a; }
-    .source-pill.postgres-fallback { background: #1e3a8a; color: #bfdbfe; }
-    .card {
-        background: #141414; border: 1px solid #2a2a2a; border-radius: 10px;
-        padding: 0.9rem 1rem; margin-bottom: 0.7rem;
-        color: #e4e4e7;
-    }
-    .card p, .card li, .card strong, .card em { color: #e4e4e7; }
-    .card h4 { margin: 0 0 0.4rem; font-size: 0.85rem; color: #fbbf24;
-               text-transform: uppercase; letter-spacing: 0.05em; }
-    .card .warn { color: #fca5a5; }
-    .source-cite { color: #71717a; font-size: 0.7rem; margin-top: 0.4rem; }
-    .draft-reply textarea { font-family: inherit !important; }
+  :root {
+    /* paper neutrals (warm, not gray) */
+    --paper-50:#FBFAF7; --paper-100:#F5F3EE; --paper-200:#ECE9E2;
+    --paper-300:#D9D5CB; --paper-400:#B5AFA1; --paper-500:#8A8475;
+    --paper-600:#5F5A4E; --paper-700:#3F3B33; --paper-800:#26241F;
+    --paper-900:#161513;
+    /* teal (primary) */
+    --teal-50:#ECFDF8; --teal-100:#D1FAEE; --teal-200:#A7F0DD;
+    --teal-300:#6FE0C5; --teal-400:#36C9AA; --teal-500:#14B295;
+    --teal-600:#0F8E78; --teal-700:#0E7060; --teal-800:#0D584E;
+    --teal-900:#0A3F39;
+    /* status */
+    --red-50:#FEF2F2; --red-100:#FEE2E2; --red-200:#FECACA;
+    --red-500:#DC2626; --red-600:#B91C1C; --red-700:#991B1B;
+    --amber-50:#FFFBEB; --amber-100:#FEF3C7; --amber-200:#FDE68A;
+    --amber-500:#D97706; --amber-600:#B45309; --amber-700:#92400E;
+    --green-50:#F0FDF4; --green-100:#DCFCE7; --green-500:#16A34A;
+    --green-600:#15803D; --green-700:#166534;
+    --blue-50:#EFF6FF; --blue-100:#DBEAFE; --blue-500:#2563EB;
+    --blue-600:#1D4ED8;
+    /* semantic */
+    --surface-canvas:var(--paper-50); --surface-raised:#FFFFFF;
+    --surface-sunken:var(--paper-100);
+    --text-primary:var(--paper-900); --text-secondary:var(--paper-700);
+    --text-tertiary:var(--paper-500); --text-disabled:var(--paper-400);
+    --border-subtle:var(--paper-200); --border-default:var(--paper-300);
+    --border-strong:var(--paper-400); --border-focus:var(--teal-500);
+    /* spacing (4px base) */
+    --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px;
+    --space-5:20px; --space-6:24px; --space-8:32px; --space-10:40px;
+    --space-12:48px; --space-16:64px;
+    /* radius */
+    --radius-sm:6px; --radius-md:10px; --radius-lg:14px;
+    --radius-xl:20px; --radius-full:9999px;
+    /* shadow */
+    --shadow-xs:0 1px 2px 0 rgba(22,21,19,.04);
+    --shadow-sm:0 1px 3px 0 rgba(22,21,19,.06),0 1px 2px 0 rgba(22,21,19,.04);
+    --shadow-md:0 4px 8px -2px rgba(22,21,19,.08),0 2px 4px -2px rgba(22,21,19,.04);
+    /* fonts */
+    --font-sans:'Geist',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    --font-serif:'Fraunces',Georgia,serif;
+    --font-mono:'JetBrains Mono','SF Mono',Menlo,monospace;
+    /* type scale — 17px body floor */
+    --text-xs:13px; --text-sm:15px; --text-base:17px; --text-md:19px;
+    --text-lg:22px; --text-xl:28px; --text-2xl:36px;
+    --leading-tight:1.2; --leading-snug:1.35; --leading-normal:1.55;
+    --leading-relaxed:1.7;
+  }
+
+  /* App chrome — get rid of Streamlit's default padding + header */
+  html, body, [data-testid="stAppViewContainer"] {
+    background: var(--surface-canvas) !important;
+    font-family: var(--font-sans) !important;
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'ss01','cv11';
+  }
+  [data-testid="stHeader"] { display: none; }
+  .block-container {
+    padding-top: var(--space-5) !important;
+    padding-bottom: var(--space-4) !important;
+    max-width: 100% !important;
+  }
+  /* Streamlit native column gaps — tighten */
+  [data-testid="stHorizontalBlock"] { gap: var(--space-4) !important; }
+
+  /* Brand row */
+  .brand {
+    font-family: var(--font-serif);
+    font-size: var(--text-xl);
+    font-weight: 500;
+    font-style: italic;
+    color: var(--teal-700);
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .brand-sub {
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-tertiary);
+    letter-spacing: 0.02em;
+    margin-left: var(--space-3);
+  }
+
+  /* TICKET ROW (left column) — from design system pattern */
+  .ticket {
+    display: grid;
+    grid-template-columns: 4px 1fr auto;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4) var(--space-3) 0;
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: background 120ms ease;
+    align-items: start;
+    text-decoration: none;
+    color: inherit;
+  }
+  .ticket:hover { background: var(--paper-50); }
+  .ticket.selected { background: var(--teal-50); }
+  .ticket-bar {
+    align-self: stretch;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  }
+  .ticket-bar-critical { background: var(--red-500); }
+  .ticket-bar-warning  { background: var(--amber-500); }
+  .ticket-bar-neutral  { background: transparent; }
+  .ticket-name {
+    font-size: var(--text-base); font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin: 0 0 2px;
+  }
+  .ticket-property {
+    font-size: var(--text-sm); color: var(--text-secondary);
+    margin: 0 0 var(--space-2);
+  }
+  .ticket-meta {
+    display: flex; align-items: center; gap: var(--space-2);
+    font-size: var(--text-xs); color: var(--text-tertiary);
+  }
+  .ticket-meta-sep {
+    width: 3px; height: 3px; background: var(--paper-400); border-radius: 50%;
+  }
+  .ticket-vuln {
+    color: var(--red-600); font-weight: 600;
+  }
+  .ticket-time {
+    font-size: var(--text-xs); color: var(--text-tertiary);
+    white-space: nowrap; padding-top: 2px;
+  }
+
+  /* Section labels (e.g. "INBOX", "CONVERSATION", "SUGGESTED ACTIONS") */
+  .section-label {
+    font-size: var(--text-xs); font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin: var(--space-6) 0 var(--space-3);
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  /* DETAIL HEADER (middle column) */
+  .detail-title {
+    font-family: var(--font-serif);
+    font-size: var(--text-2xl); font-weight: 500;
+    letter-spacing: -0.015em;
+    margin: 0 0 var(--space-2);
+    color: var(--text-primary);
+  }
+  .detail-subtitle {
+    font-size: var(--text-sm); color: var(--text-tertiary);
+    display: flex; gap: var(--space-2); flex-wrap: wrap;
+    align-items: center;
+  }
+  .detail-subtitle-sep { color: var(--paper-400); }
+
+  /* CONVERSATION BUBBLE — paper-100 for ALL bubbles per spec */
+  .msg-bubble {
+    background: var(--paper-100);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4) var(--space-5);
+    margin: var(--space-3) 0;
+  }
+  .msg-bubble.outbound {
+    background: var(--teal-50);
+    border-left: 3px solid var(--teal-600);
+  }
+  .msg-meta {
+    font-size: var(--text-xs); color: var(--text-tertiary);
+    display: flex; gap: var(--space-2); margin-bottom: var(--space-2);
+  }
+  .msg-meta strong { color: var(--text-primary); font-weight: 600; }
+  .msg-body {
+    font-size: var(--text-base); color: var(--text-primary);
+    line-height: var(--leading-relaxed);
+    margin: 0; white-space: pre-wrap;
+  }
+
+  /* CHIP */
+  .chip {
+    display: inline-flex; align-items: center; gap: var(--space-1);
+    padding: 2px var(--space-2);
+    font-size: var(--text-xs); font-weight: 600;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    border-radius: var(--radius-full);
+    border: 1px solid transparent;
+  }
+  .chip-critical { background: var(--red-50); color: var(--red-700); border-color: var(--red-200); }
+  .chip-warning  { background: var(--amber-50); color: var(--amber-700); border-color: var(--amber-200); }
+  .chip-success  { background: var(--green-50); color: var(--green-700); border-color: var(--green-100); }
+  .chip-info     { background: var(--blue-50); color: var(--blue-600); border-color: var(--blue-100); }
+  .chip-neutral  { background: var(--paper-100); color: var(--paper-700); border-color: var(--paper-200); }
+  .chip-teal     { background: var(--teal-50); color: var(--teal-800); border-color: var(--teal-200); }
+
+  /* CONTEXT CARD (right column) */
+  .ctx-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+    margin-bottom: var(--space-4);
+  }
+  .ctx-card-elevated { box-shadow: var(--shadow-sm); }
+  .ctx-card-header {
+    font-size: var(--text-xs); font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: var(--space-3);
+    display: flex; align-items: center; gap: var(--space-2);
+  }
+  .ctx-name {
+    font-size: var(--text-md); font-weight: 600;
+    color: var(--text-primary); margin: 0 0 var(--space-1);
+  }
+  .ctx-detail {
+    font-size: var(--text-sm); color: var(--text-secondary); margin: 0 0 var(--space-3);
+  }
+  .ctx-attrs { list-style: none; padding: 0; margin: 0;
+               display: flex; flex-direction: column; gap: var(--space-2); }
+  .ctx-attrs li {
+    font-size: var(--text-sm); color: var(--text-secondary);
+    line-height: var(--leading-snug);
+    padding-left: var(--space-5); position: relative;
+  }
+  .ctx-attrs li::before {
+    content: ''; position: absolute; left: 0; top: 8px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--paper-400);
+  }
+  .ctx-attrs li.alert::before { background: var(--red-500); }
+  .ctx-attrs li.alert { color: var(--text-primary); font-weight: 500; }
+
+  /* Pattern card timeline */
+  .timeline-row {
+    display: flex; gap: var(--space-3); margin-bottom: var(--space-3);
+    align-items: flex-start;
+  }
+  .timeline-dot {
+    flex-shrink: 0; width: 10px; height: 10px;
+    border-radius: 50%; margin-top: 6px;
+  }
+  .timeline-date {
+    flex-shrink: 0; min-width: 5.2rem;
+    font-size: var(--text-xs); color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums; padding-top: 2px;
+  }
+  .timeline-fact {
+    flex: 1; font-size: var(--text-sm); color: var(--text-primary);
+    line-height: var(--leading-snug);
+  }
+  .timeline-source {
+    color: var(--text-tertiary); font-size: var(--text-xs);
+    font-family: var(--font-mono);
+  }
+
+  /* ACTION CARD (suggested actions) */
+  .action-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    margin-bottom: var(--space-3);
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+  .action-card:hover {
+    border-color: var(--border-default);
+    box-shadow: var(--shadow-sm);
+  }
+  .action-card.high      { border-left: 3px solid var(--amber-500); }
+  .action-card.critical  { border-left: 3px solid var(--red-500); }
+  .action-card.irreversible { border-left: 3px solid var(--paper-700); }
+  .action-title {
+    font-size: var(--text-md); font-weight: 600;
+    margin: 0 0 var(--space-2); color: var(--text-primary);
+  }
+  .action-rationale {
+    font-size: var(--text-sm); color: var(--text-secondary);
+    line-height: var(--leading-snug); margin: 0 0 var(--space-3);
+  }
+
+  /* Source pill on pattern card */
+  .source-pill {
+    display: inline-block; font-size: var(--text-xs); font-weight: 600;
+    padding: 2px var(--space-2); border-radius: var(--radius-full);
+    letter-spacing: 0.04em; text-transform: uppercase;
+    margin-left: var(--space-2);
+  }
+  .source-pill.graphiti          { background: var(--teal-50); color: var(--teal-800); border:1px solid var(--teal-200); }
+  .source-pill.postgres-fallback { background: var(--blue-50); color: var(--blue-600); border:1px solid var(--blue-100); }
+  .source-pill.stub              { background: var(--amber-50); color: var(--amber-700); border:1px solid var(--amber-200); }
+  .source-pill.cache             { background: var(--paper-100); color: var(--paper-700); border:1px solid var(--paper-200); }
+
+  /* Streamlit overrides */
+  /* Buttons */
+  .stButton > button {
+    min-height: 44px !important;
+    font-family: var(--font-sans) !important;
+    font-size: var(--text-base) !important;
+    font-weight: 500 !important;
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--border-default) !important;
+    background: var(--surface-raised) !important;
+    color: var(--text-primary) !important;
+    transition: background 120ms ease, box-shadow 120ms ease !important;
+    padding: 0 var(--space-5) !important;
+    text-align: left !important;
+  }
+  .stButton > button:hover {
+    background: var(--paper-50) !important;
+    border-color: var(--border-default) !important;
+  }
+  .stButton > button[kind="primary"] {
+    background: var(--teal-600) !important;
+    color: #fff !important;
+    border-color: var(--teal-600) !important;
+  }
+  .stButton > button[kind="primary"]:hover {
+    background: var(--teal-700) !important;
+    border-color: var(--teal-700) !important;
+  }
+  /* Buttons inside ticket rows should stretch + center */
+  .ticket-button .stButton > button {
+    width: 100%;
+    background: transparent !important;
+    border: none !important;
+    padding: var(--space-3) var(--space-4) !important;
+    text-align: left !important;
+    border-radius: var(--radius-sm) !important;
+  }
+  .ticket-button .stButton > button:hover {
+    background: var(--paper-50) !important;
+  }
+
+  /* Text inputs */
+  .stTextArea textarea, .stTextInput input {
+    font-family: var(--font-sans) !important;
+    font-size: var(--text-base) !important;
+    color: var(--text-primary) !important;
+    background: var(--surface-raised) !important;
+    border: 1px solid var(--border-default) !important;
+    border-radius: var(--radius-md) !important;
+    line-height: var(--leading-snug) !important;
+    padding: var(--space-3) var(--space-4) !important;
+  }
+  .stTextArea textarea:focus, .stTextInput input:focus {
+    border-color: var(--teal-500) !important;
+    box-shadow: 0 0 0 3px var(--teal-100) !important;
+  }
+
+  /* Captions */
+  small, .stCaption { color: var(--text-tertiary); font-size: var(--text-sm); }
+
+  /* Empty-state placeholder */
+  .empty-state {
+    color: var(--text-tertiary);
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: var(--text-md);
+    text-align: center;
+    padding: var(--space-16) var(--space-4);
+  }
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -86,26 +417,30 @@ if "show_trace" not in st.session_state:
 
 
 # ---------------------------------------------------------------------------
-# Layout — 3 columns + header
+# Header
 # ---------------------------------------------------------------------------
 
-# Header
 header_l, header_r = st.columns([4, 1])
 with header_l:
     st.markdown(
-        "### Theo Copilot &nbsp; <span style='color:#71717a;font-weight:400'>· Sarah Weber</span>",
+        "<p class='brand'>Fletcher<span class='brand-sub'>· Sarah Weber</span></p>",
         unsafe_allow_html=True,
     )
 with header_r:
-    if st.button("⟳ Refresh", use_container_width=True):
+    if st.button("⟳ Aktualisieren", use_container_width=True):
         st.rerun()
 
-col_list, col_detail, col_enrich = st.columns([1, 1.4, 1.4], gap="medium")
+
+# ---------------------------------------------------------------------------
+# Layout — 3 columns
+# ---------------------------------------------------------------------------
+
+col_list, col_detail, col_enrich = st.columns([1, 1.5, 1.3], gap="medium")
 
 
-# Left column — ticket list
+# Left — ticket list
 with col_list:
-    st.markdown("##### Inbox")
+    st.markdown("<p class='section-label'>Inbox</p>", unsafe_allow_html=True)
     tickets = fetch_ticket_list()
     selected_id = inbox.render(tickets, st.session_state.selected_ticket_id)
     if selected_id and selected_id != st.session_state.selected_ticket_id:
@@ -113,12 +448,12 @@ with col_list:
         st.rerun()
 
 
-# Middle + Right columns — detail + enrichment
+# Middle + right — detail + enrichment
 if st.session_state.selected_ticket_id:
     ticket = fetch_ticket(st.session_state.selected_ticket_id)
     if ticket is None:
         with col_detail:
-            st.warning("Ticket not found.")
+            st.warning("Ticket nicht gefunden.")
     else:
         with col_detail:
             ticket_detail.render(ticket)
@@ -128,8 +463,6 @@ if st.session_state.selected_ticket_id:
 else:
     with col_detail:
         st.markdown(
-            "<div style='color:#71717a;padding:3rem 1rem;text-align:center'>"
-            "Wählen Sie ein Ticket aus der Liste aus."
-            "</div>",
+            "<div class='empty-state'>Wählen Sie ein Ticket aus der Liste.</div>",
             unsafe_allow_html=True,
         )

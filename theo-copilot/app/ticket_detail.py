@@ -1,4 +1,4 @@
-"""Ticket detail — middle column: conversation + (later) draft reply."""
+"""Ticket detail — middle column: serif title + conversation bubbles."""
 from __future__ import annotations
 
 from datetime import timezone
@@ -8,48 +8,73 @@ import streamlit as st
 from app.db_sync import fetch_thread_messages
 
 
+_PRIORITY_CHIP = {
+    "DRINGEND": "<span class='chip chip-critical'>Dringend</span>",
+    "Hoch":     "<span class='chip chip-warning'>Hoch</span>",
+    "Standard": "<span class='chip chip-neutral'>Standard</span>",
+}
+
+
 def render(ticket: dict) -> None:
-    st.markdown(f"#### {ticket.get('tenant_name', 'unknown')} — {ticket.get('unit_label', '')}")
-    st.caption(
-        f"{ticket.get('property_address', '')}  ·  "
-        f"Ticket {ticket['id']}  ·  "
-        f"Status: **{ticket.get('status', 'unknown')}**  ·  "
-        f"{ticket.get('priority', 'Standard')}"
+    tenant = ticket.get("tenant_name") or "unbekannt"
+    unit = ticket.get("unit_label") or ""
+    address = ticket.get("property_address") or "Zossener Str. 47, 10961 Berlin"
+    priority = ticket.get("priority") or "Standard"
+    status = ticket.get("status") or "unknown"
+
+    chip_priority = _PRIORITY_CHIP.get(priority, _PRIORITY_CHIP["Standard"])
+    status_chip = (
+        f"<span class='chip chip-info'>{status.replace('_', ' ')}</span>"
+        if status in {"open", "enriching"}
+        else f"<span class='chip chip-success'>{status.replace('_', ' ')}</span>"
     )
 
-    # Conversation thread
+    sep = "<span class='detail-subtitle-sep'>·</span>"
+
+    st.markdown(
+        f"""
+        <h2 class='detail-title'>{tenant} — {unit}</h2>
+        <div class='detail-subtitle'>
+          <span>{address}</span> {sep}
+          <span>Ticket <code style="font-family:var(--font-mono);font-size:12px">{ticket['id']}</code></span>
+          {sep} {chip_priority} {status_chip}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # ---- Conversation ----------------------------------------------------
     thread_id = ticket.get("source_thread_id")
     messages = fetch_thread_messages(thread_id) if thread_id else []
+
+    st.markdown("<p class='section-label'>Konversation</p>", unsafe_allow_html=True)
+
     if not messages:
-        # Fall back to showing the inbound body from the ticket itself
-        st.markdown("**Eingehende Nachricht:**")
-        with st.container():
-            st.markdown(
-                f"<div style='background:#1a1a1a;border:1px solid #2a2a2a;"
-                f"padding:0.8rem;border-radius:8px;white-space:pre-wrap;"
-                f"color:#e4e4e7'>"
-                f"{(ticket.get('full_text') or '').strip()}"
-                f"</div>",
-                unsafe_allow_html=True,
-            )
+        body = (ticket.get("full_text") or "").strip()
+        st.markdown(
+            f"""
+            <div class='msg-bubble'>
+              <div class='msg-meta'><strong>{tenant}</strong></div>
+              <p class='msg-body'>{body}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         return
 
-    st.markdown("**Konversation**")
     for m in messages:
         sent_at = m["sent_at"]
         if sent_at.tzinfo is None:
             sent_at = sent_at.replace(tzinfo=timezone.utc)
         when = sent_at.strftime("%d.%m. %H:%M")
-        is_inbound = m["direction"] == "inbound"
-        align = "flex-start" if is_inbound else "flex-end"
-        bg = "#1a1a1a" if is_inbound else "#1e3a3a"
+        cls = "msg-bubble" if m["direction"] == "inbound" else "msg-bubble outbound"
         st.markdown(
-            f"<div style='display:flex;justify-content:{align};margin:0.4rem 0'>"
-            f"<div style='background:{bg};border:1px solid #2a2a2a;padding:0.6rem 0.8rem;"
-            f"border-radius:10px;max-width:80%;white-space:pre-wrap;color:#e4e4e7'>"
-            f"<div style='font-size:0.7rem;color:#a1a1aa;margin-bottom:0.2rem'>"
-            f"{m['sender']} · {when}</div>"
-            f"{m['body']}"
-            f"</div></div>",
+            f"""
+            <div class='{cls}'>
+              <div class='msg-meta'><strong>{m['sender']}</strong>
+                <span>·</span><span>{when}</span></div>
+              <p class='msg-body'>{m['body']}</p>
+            </div>
+            """,
             unsafe_allow_html=True,
         )
