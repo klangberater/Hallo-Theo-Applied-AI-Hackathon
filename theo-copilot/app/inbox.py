@@ -38,6 +38,13 @@ def _bar_class(priority: str) -> str:
     return "ticket-bar ticket-bar-neutral"
 
 
+_MODE_CHIP = {
+    "autonomous_done": "<span class='mode-chip mode-chip-autonomous'>✓ Autonom erledigt</span>",
+    "bundle_approve":  "<span class='mode-chip mode-chip-bundle'>Einmal bestätigen</span>",
+    "propose":         "",  # default — no chip needed; "Schritt für Schritt" is implicit
+}
+
+
 def render(tickets: list[dict], selected_id: str | None) -> str | None:
     """Render ticket rows. Returns newly-selected id if changed."""
     if not tickets:
@@ -60,12 +67,16 @@ def render(tickets: list[dict], selected_id: str | None) -> str | None:
         unit_label = t.get("unit_label", "")
         ago = _ago(t["opened_at"])
 
+        autonomy = t.get("autonomy_mode") or "propose"
+        mode_chip = _MODE_CHIP.get(autonomy, "")
+
         meta_parts = [f"{channel_icon} {intent or 'Sonstiges'}"]
         if pattern and int(pattern) >= 3:
             meta_parts.append(f"<span class='ticket-vuln'>🔁 {pattern} Vorfälle</span>")
         meta_html = ' <span class="ticket-meta-sep"></span> '.join(meta_parts)
 
         selected_class = " selected" if is_selected else ""
+        # Layout: status bar | body | (chip + time)
         row_html = f"""
         <div class="ticket{selected_class}">
           <div class="{_bar_class(priority)}"></div>
@@ -74,7 +85,10 @@ def render(tickets: list[dict], selected_id: str | None) -> str | None:
             <p class="ticket-property">{unit_label} · Zossener Str. 47</p>
             <div class="ticket-meta">{meta_html}</div>
           </div>
-          <div class="ticket-time">{ago}</div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+            <div class="ticket-time">{ago}</div>
+            {mode_chip}
+          </div>
         </div>
         """
 

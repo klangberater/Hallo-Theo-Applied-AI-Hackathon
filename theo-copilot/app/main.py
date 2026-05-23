@@ -320,6 +320,50 @@ CSS = """
     line-height: var(--leading-snug); margin: 0 0 var(--space-3);
   }
 
+  /* Autonomy mode chip — on ticket rows and detail header */
+  .mode-chip {
+    display: inline-flex; align-items: center; gap: var(--space-1);
+    font-size: var(--text-xs); font-weight: 600;
+    padding: 2px var(--space-2); border-radius: var(--radius-full);
+    letter-spacing: 0.04em;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .mode-chip-autonomous { background: var(--teal-50); color: var(--teal-800);
+                          border-color: var(--teal-200); }
+  .mode-chip-bundle     { background: var(--amber-50); color: var(--amber-700);
+                          border-color: var(--amber-200); }
+  .mode-chip-propose    { background: var(--paper-100); color: var(--paper-700);
+                          border-color: var(--paper-200); }
+
+  /* Autonomy banner — sits above suggested_actions */
+  .autonomy-banner {
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+    margin: var(--space-3) 0 var(--space-4);
+    border-left: 3px solid;
+    font-size: var(--text-sm);
+    line-height: var(--leading-snug);
+  }
+  .autonomy-banner-title {
+    font-weight: 600; font-size: var(--text-sm);
+    margin: 0 0 var(--space-2); display: flex; align-items: center; gap: var(--space-2);
+  }
+  .autonomy-banner-body { margin: 0; color: var(--text-secondary); }
+  .autonomy-banner.autonomous { background: var(--teal-50); border-color: var(--teal-600); }
+  .autonomy-banner.autonomous .autonomy-banner-title { color: var(--teal-800); }
+  .autonomy-banner.bundle     { background: var(--amber-50); border-color: var(--amber-500); }
+  .autonomy-banner.bundle .autonomy-banner-title { color: var(--amber-700); }
+
+  /* Done badge for executed actions in autonomous_done */
+  .action-done {
+    display: inline-flex; align-items: center; gap: var(--space-1);
+    font-size: var(--text-xs); font-weight: 600;
+    color: var(--green-700); background: #F0FDF4;
+    padding: 2px var(--space-2); border-radius: var(--radius-full);
+    border: 1px solid var(--green-100);
+  }
+
   /* Source pill on pattern card */
   .source-pill {
     display: inline-block; font-size: var(--text-xs); font-weight: 600;
