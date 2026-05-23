@@ -19,7 +19,10 @@ sys.path.insert(0, str(ROOT))
 
 import streamlit as st
 
-from app import action_panel, demo_controls, enrichment_cards, inbox, ticket_detail
+from app import (
+    action_panel, db_sync, demo_controls, enrichment_cards, inbox,
+    ticket_detail,
+)
 from app.db_sync import fetch_ticket, fetch_ticket_list
 
 
@@ -249,6 +252,58 @@ CSS = """
   .inbox-chip {
     font-size: 10px !important;
     padding: 1px 6px !important;
+  }
+
+  /* DONE / ARCHIVED row states (per Mark-as-Done & Archive spec). */
+  .inbox-row.done {
+    opacity: 0.72;
+  }
+  .inbox-row.done .inbox-row-sender,
+  .inbox-row.done .inbox-row-category {
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  .inbox-row.done .inbox-row-preview {
+    color: var(--green-700);
+    font-style: italic;
+  }
+  .inbox-row.archived .inbox-row-preview {
+    color: var(--text-tertiary);
+    font-style: italic;
+  }
+  /* Hide the unread dot for non-open states (already handled by removing
+     .unread, but defense in depth). */
+  .inbox-row.done .inbox-row-dot,
+  .inbox-row.archived .inbox-row-dot {
+    background: transparent !important;
+  }
+
+  /* Done banner in the detail panel. */
+  .done-banner {
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+    margin: var(--space-3) 0 var(--space-4);
+    border-left: 3px solid;
+    font-size: var(--text-sm);
+    line-height: var(--leading-snug);
+  }
+  .done-banner.done {
+    background: var(--green-50);
+    border-color: var(--green-600);
+    color: var(--green-700);
+  }
+  .done-banner.archived {
+    background: var(--paper-100);
+    border-color: var(--paper-400);
+    color: var(--text-secondary);
+  }
+  .done-banner-text {
+    font-weight: 600;
+  }
+  .done-banner-note {
+    margin-top: var(--space-2);
+    color: var(--text-secondary);
+    font-weight: 400;
   }
 
   /* Section labels (e.g. "INBOX", "CONVERSATION", "SUGGESTED ACTIONS") */
@@ -513,12 +568,18 @@ CSS = """
   .inbox-row-link .chip-critical * { color: var(--red-700) !important; }
   .inbox-row-link .chip-warning,
   .inbox-row-link .chip-warning *  { color: var(--amber-700) !important; }
+  .inbox-row-link .chip-success,
+  .inbox-row-link .chip-success *  { color: var(--green-700) !important; }
+  .inbox-row-link .chip-neutral,
+  .inbox-row-link .chip-neutral *  { color: var(--text-secondary) !important; }
   .inbox-row-link .inbox-pill-incidents,
   .inbox-row-link .inbox-pill-incidents * { color: var(--red-700) !important; }
   .inbox-row-link .mode-chip-autonomous,
   .inbox-row-link .mode-chip-autonomous * { color: var(--teal-800) !important; }
   .inbox-row-link .mode-chip-bundle,
   .inbox-row-link .mode-chip-bundle *     { color: var(--amber-700) !important; }
+  /* Done-state preview text */
+  .inbox-row-link .inbox-row.done .inbox-row-preview { color: var(--green-700) !important; }
   .inbox-row-link:focus-visible {
     outline: 2px solid var(--border-focus);
     outline-offset: -2px;
@@ -598,40 +659,57 @@ CSS = """
     overflow: hidden !important;
     padding-bottom: var(--space-3) !important;
   }
-  /* Each scroll pane — viewport height minus the brand-row header
-     (~110-130px). Use viewport units directly so no Streamlit
-     flex/height chain has to line up. */
-  .st-key-scroll-inbox,
-  .st-key-scroll-detail,
-  .st-key-scroll-context {
-    height: calc(100vh - 130px) !important;
-    max-height: calc(100vh - 130px) !important;
+  /* Each scroll pane — viewport height minus the brand-row + tabs
+     (~170px). Use viewport units directly so no Streamlit
+     flex/height chain has to line up. The tab bodies are siblings and
+     keys are suffixed per-view (-inbox / -archive), so we match any
+     scroll-list-*, scroll-detail-*, scroll-context-* with [class*=]. */
+  [class*="st-key-scroll-list-"],
+  [class*="st-key-scroll-detail-"],
+  [class*="st-key-scroll-context-"] {
+    height: calc(100vh - 170px) !important;
+    max-height: calc(100vh - 170px) !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     padding-right: var(--space-2);
-  }
-  /* Thin paper-toned scrollbars. */
-  .st-key-scroll-inbox,
-  .st-key-scroll-detail,
-  .st-key-scroll-context {
     scrollbar-width: thin;
     scrollbar-color: var(--paper-300) transparent;
   }
-  .st-key-scroll-inbox::-webkit-scrollbar,
-  .st-key-scroll-detail::-webkit-scrollbar,
-  .st-key-scroll-context::-webkit-scrollbar {
+  [class*="st-key-scroll-list-"]::-webkit-scrollbar,
+  [class*="st-key-scroll-detail-"]::-webkit-scrollbar,
+  [class*="st-key-scroll-context-"]::-webkit-scrollbar {
     width: 6px;
   }
-  .st-key-scroll-inbox::-webkit-scrollbar-thumb,
-  .st-key-scroll-detail::-webkit-scrollbar-thumb,
-  .st-key-scroll-context::-webkit-scrollbar-thumb {
+  [class*="st-key-scroll-list-"]::-webkit-scrollbar-thumb,
+  [class*="st-key-scroll-detail-"]::-webkit-scrollbar-thumb,
+  [class*="st-key-scroll-context-"]::-webkit-scrollbar-thumb {
     background: var(--paper-300);
     border-radius: 3px;
   }
-  .st-key-scroll-inbox::-webkit-scrollbar-track,
-  .st-key-scroll-detail::-webkit-scrollbar-track,
-  .st-key-scroll-context::-webkit-scrollbar-track {
+  [class*="st-key-scroll-list-"]::-webkit-scrollbar-track,
+  [class*="st-key-scroll-detail-"]::-webkit-scrollbar-track,
+  [class*="st-key-scroll-context-"]::-webkit-scrollbar-track {
     background: transparent;
+  }
+
+  /* Top-level tabs (Posteingang / Archiv). */
+  [data-testid="stTabs"] {
+    margin-top: var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+  [data-testid="stTabs"] [role="tab"] {
+    font-family: var(--font-sans) !important;
+    font-size: var(--text-sm) !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.04em;
+    color: var(--text-tertiary) !important;
+    padding: var(--space-3) var(--space-4) !important;
+  }
+  [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+    color: var(--teal-700) !important;
+  }
+  [data-testid="stTabs"] [role="tab"][aria-selected="true"]::after {
+    background-color: var(--teal-600) !important;
   }
 </style>
 """
@@ -681,48 +759,98 @@ demo_controls.render()
 # its own scroll without affecting the header row above.
 # ---------------------------------------------------------------------------
 
-with st.container(key="main-layout"):
-    col_list, col_detail = st.columns([1, 3], gap="medium")
+def _render_pane(view: str) -> None:
+    """One inbox-or-archive pane. Re-used by both tabs so the layout
+    matches; container keys are suffixed per-view so the two co-existing
+    tab bodies don't collide on st.container(key=...).
+    """
+    suffix = f"-{view}"
+    is_archive = view == "archive"
 
-    with col_list:
-        with st.container(key="scroll-inbox"):
-            st.markdown(
-                "<p class='section-label'>Inbox</p>", unsafe_allow_html=True
-            )
-            tickets = fetch_ticket_list()
-            inbox.render(
-                tickets,
-                st.session_state.selected_ticket_id,
-                st.session_state.opened_ticket_ids,
-            )
+    with st.container(key=f"main-layout{suffix}"):
+        col_list, col_detail = st.columns([1, 3], gap="medium")
 
-    if st.session_state.selected_ticket_id:
-        ticket = fetch_ticket(st.session_state.selected_ticket_id)
-        if ticket is None:
-            with col_detail:
-                st.warning("Ticket nicht gefunden.")
+        with col_list:
+            with st.container(key=f"scroll-list{suffix}"):
+                if is_archive:
+                    st.markdown(
+                        "<p class='section-label'>Archiv</p>",
+                        unsafe_allow_html=True,
+                    )
+                    search = st.text_input(
+                        "Archiv durchsuchen",
+                        key="archive_search",
+                        placeholder="Mieter, Wohneinheit, Notiz…",
+                        label_visibility="collapsed",
+                    )
+                    tickets = fetch_ticket_list(
+                        view="archive", search=search or None
+                    )
+                else:
+                    st.markdown(
+                        "<p class='section-label'>Posteingang</p>",
+                        unsafe_allow_html=True,
+                    )
+                    tickets = fetch_ticket_list(view="inbox")
+
+                inbox.render(
+                    tickets,
+                    st.session_state.selected_ticket_id,
+                    st.session_state.opened_ticket_ids,
+                    view=view,
+                )
+
+        if st.session_state.selected_ticket_id:
+            ticket = fetch_ticket(st.session_state.selected_ticket_id)
+            if ticket is None:
+                with col_detail:
+                    st.warning("Ticket nicht gefunden.")
+            else:
+                # Archive view doesn't show the live action panel — replies
+                # from inside the archive are a context error (spec §8.3).
+                hide_actions = is_archive or (
+                    ticket.get("derived_state") == "archived"
+                )
+                with col_detail:
+                    sub_detail, sub_context = st.columns(
+                        [1.8, 1], gap="medium"
+                    )
+                    with sub_detail:
+                        with st.container(key=f"scroll-detail{suffix}"):
+                            ticket_detail.render(ticket)
+                            if not hide_actions:
+                                action_panel.render(ticket)
+                    with sub_context:
+                        with st.container(key=f"scroll-context{suffix}"):
+                            st.markdown(
+                                "<p class='section-label'>Kontext</p>",
+                                unsafe_allow_html=True,
+                            )
+                            enrichment_cards.render(ticket)
         else:
             with col_detail:
-                sub_detail, sub_context = st.columns([1.8, 1], gap="medium")
-                with sub_detail:
-                    with st.container(key="scroll-detail"):
-                        ticket_detail.render(ticket)
-                        action_panel.render(ticket)
-                with sub_context:
-                    with st.container(key="scroll-context"):
-                        st.markdown(
-                            "<p class='section-label'>Kontext</p>",
-                            unsafe_allow_html=True,
-                        )
-                        enrichment_cards.render(ticket)
-    else:
-        with col_detail:
-            st.markdown(
-                """
-                <div class='empty-state-wrap'>
-                  <div class='empty-state-icon'>✉</div>
-                  <div class='empty-state-text'>Wählen Sie eine Nachricht aus der Liste.</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+                empty_text = (
+                    "Keine archivierten Tickets ausgewählt."
+                    if is_archive
+                    else "Wählen Sie eine Nachricht aus der Liste."
+                )
+                st.markdown(
+                    f"""
+                    <div class='empty-state-wrap'>
+                      <div class='empty-state-icon'>{'🗄' if is_archive else '✉'}</div>
+                      <div class='empty-state-text'>{empty_text}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+
+# Inbox / Archive top-level tabs (per spec §8).
+_open_count = db_sync.count_open_tickets()
+tab_inbox, tab_archive = st.tabs(
+    [f"Posteingang · {_open_count}", "Archiv"]
+)
+with tab_inbox:
+    _render_pane("inbox")
+with tab_archive:
+    _render_pane("archive")
