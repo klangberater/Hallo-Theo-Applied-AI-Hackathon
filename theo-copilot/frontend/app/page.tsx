@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { api, type Ticket, type TicketDetail } from '@/lib/api';
 import { InboxList } from '@/components/inbox-list';
 import { TicketView } from '@/components/ticket-view';
+import { EnrichmentCards } from '@/components/enrichment-cards';
 import { DemoControls } from '@/components/demo-controls';
 import { RefreshCw } from 'lucide-react';
 
@@ -54,9 +55,10 @@ export default function Page() {
       {/* Demo controls (collapsible) */}
       <DemoControls onAfter={refresh} />
 
-      {/* Main: 2-column inbox layout */}
+      {/* Main: 3-column inbox layout — list / detail / context */}
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-[380px] shrink-0 border-r border-paper-200 bg-white overflow-y-auto">
+        {/* Column 1: ticket list */}
+        <aside className="w-[360px] shrink-0 border-r border-paper-200 bg-white overflow-y-auto">
           <h2 className="px-4 pt-4 pb-2 text-xs font-semibold uppercase tracking-wider text-paper-500">
             Inbox
           </h2>
@@ -68,7 +70,8 @@ export default function Page() {
           />
         </aside>
 
-        <main className="flex-1 overflow-y-auto bg-paper-50">
+        {/* Column 2: ticket detail (conversation + actions) */}
+        <main className="flex-1 min-w-0 overflow-y-auto bg-paper-50">
           {detail ? (
             <TicketView ticket={detail} onAfter={async () => {
               await refresh();
@@ -83,6 +86,18 @@ export default function Page() {
             </div>
           )}
         </main>
+
+        {/* Column 3: enrichment context (stays in view while reading) */}
+        {detail && (
+          <aside className="w-[400px] shrink-0 border-l border-paper-200 bg-paper-100 overflow-y-auto">
+            <h2 className="px-5 pt-4 pb-2 text-xs font-semibold uppercase tracking-wider text-paper-500">
+              Anreicherung
+            </h2>
+            <div className="px-5 pb-6">
+              <EnrichmentCards ticket={detail} />
+            </div>
+          </aside>
+        )}
       </div>
     </div>
   );

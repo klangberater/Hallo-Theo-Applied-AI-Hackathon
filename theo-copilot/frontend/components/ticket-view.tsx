@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { api, type ThreadMessage, type TicketDetail, type TraceEvent } from '@/lib/api';
-import { EnrichmentCards } from '@/components/enrichment-cards';
 import { ActionPanel } from '@/components/action-panel';
 
 function fmt(iso: string): string {
@@ -29,7 +28,7 @@ export function TicketView({
   }, [ticket.id]);
 
   return (
-    <div className="px-8 py-6 max-w-4xl mx-auto">
+    <div className="px-8 py-6">
       {/* Header */}
       <header className="border-b border-paper-200 pb-4 mb-6">
         <h2 className="font-serif text-2xl font-medium leading-tight tracking-tight mb-2 text-paper-900">
@@ -82,14 +81,6 @@ export function TicketView({
 
       {/* Action panel — three modes */}
       <ActionPanel ticket={ticket} onAfter={onAfter} />
-
-      {/* Enrichment cards */}
-      <section className="mt-8">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-paper-500 mb-3">
-          Anreicherung
-        </h3>
-        <EnrichmentCards ticket={ticket} />
-      </section>
     </div>
   );
 }
