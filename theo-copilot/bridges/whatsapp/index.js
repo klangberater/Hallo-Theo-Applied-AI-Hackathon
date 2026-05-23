@@ -32,6 +32,8 @@ const ALLOWED = (process.env.WHATSAPP_ALLOWED_NUMBERS || '')
 let sock = null;
 let bridgeReady = false;
 let lastQr = null;
+let ownJid = null;     // e.g. "493012345678:64@s.whatsapp.net"
+let ownNumber = null;  // e.g. "+493012345678"
 
 function jidToE164(jid) {
   // "493061523 81@s.whatsapp.net" → "+49306152381"
@@ -57,7 +59,7 @@ function extractText(m) {
   return '';
 }
 
-async function forwardInbound(m) {
+async function forwardInbound(m, opts = {}) {
   const from = jidToE164(m.key.remoteJid);
   if (!from) return;
   // Skip group chats for the demo
@@ -76,6 +78,7 @@ async function forwardInbound(m) {
     body,
     sent_at: sentAt,
     external_thread_id: `wa-${from}`,
+    self_chat: !!opts.selfChat,
   };
   try {
     const res = await fetch(`${INTAKE_URL}/webhook/whatsapp`, {
@@ -83,7 +86,7 @@ async function forwardInbound(m) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    log.info({ from, status: res.status }, 'forwarded inbound');
+    log.info({ from, status: res.status, selfChat: !!opts.selfChat }, 'forwarded inbound');
   } catch (err) {
     log.error({ err: err.message, from }, 'forward to intake failed');
   }
@@ -115,7 +118,12 @@ async function startSocket() {
     if (connection === 'open') {
       bridgeReady = true;
       lastQr = null;
-      log.info('WhatsApp connection OPEN');
+      ownJid = sock.user?.id || null;
+      if (ownJid) {
+        const digits = ownJid.split(':')[0].split('@')[0].replace(/[^\d]/g, '');
+        ownNumber = digits ? `+${digits}` : null;
+      }
+      log.info({ ownNumber }, 'WhatsApp connection OPEN');
     }
     if (connection === 'close') {
       bridgeReady = false;
@@ -133,8 +141,11 @@ async function startSocket() {
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     if (type !== 'notify') return;
     for (const m of messages) {
-      if (m.key.fromMe) continue;
-      forwardInbound(m).catch(err => log.error({ err: err.message }, 'forward error'));
+      const remoteDigits = (m.key.remoteJid || '').split('@')[0].replace(/[^\d]/g, '');
+      const ownDigits = (ownNumber || '').replace(/[^\d]/g, '');
+      const isSelfChat = m.key.fromMe && ownDigits && remoteDigits === ownDigits;
+      if (m.key.fromMe && !isSelfChat) continue;  // skip our outbound to others
+      forwardInbound(m, { selfChat: isSelfChat }).catch(err => log.error({ err: err.message }, 'forward error'));
     }
   });
 }
@@ -149,7 +160,12 @@ app.get('/health', (req, res) => {
     status: bridgeReady ? 'ready' : 'pairing',
     paired: bridgeReady,
     qr_pending: !!lastQr,
+    own_number: ownNumber,
   });
+});
+
+app.get('/me', (req, res) => {
+  res.json({ own_number: ownNumber, paired: bridgeReady });
 });
 
 app.get('/qr', (req, res) => {
