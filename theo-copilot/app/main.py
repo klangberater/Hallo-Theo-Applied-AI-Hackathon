@@ -606,7 +606,7 @@ with col_list:
     )
 
 
-# Right — detail + enrichment stacked
+# Right — detail (left subpane) + context (right subpane)
 if st.session_state.selected_ticket_id:
     ticket = fetch_ticket(st.session_state.selected_ticket_id)
     if ticket is None:
@@ -614,13 +614,16 @@ if st.session_state.selected_ticket_id:
             st.warning("Ticket nicht gefunden.")
     else:
         with col_detail:
-            ticket_detail.render(ticket)
-            action_panel.render(ticket)
-            st.markdown(
-                "<p class='section-label'>Kontext</p>",
-                unsafe_allow_html=True,
-            )
-            enrichment_cards.render(ticket)
+            sub_detail, sub_context = st.columns([1.8, 1], gap="medium")
+            with sub_detail:
+                ticket_detail.render(ticket)
+                action_panel.render(ticket)
+            with sub_context:
+                st.markdown(
+                    "<p class='section-label'>Kontext</p>",
+                    unsafe_allow_html=True,
+                )
+                enrichment_cards.render(ticket)
 else:
     with col_detail:
         st.markdown(
