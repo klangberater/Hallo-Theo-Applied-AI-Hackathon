@@ -25,12 +25,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from infra.graphiti_client import (  # noqa: E402
-    add_episode, property_group, tenant_group, vendor_group,
-)
+from infra.graphiti_client import add_episode, tenant_group  # noqa: E402
 
 
-KOEHLER_GROUPS = [tenant_group("koehler"), property_group("zossener_47")]
+KOEHLER_GROUP = tenant_group("koehler")
 
 
 def _utc(*args) -> datetime:
@@ -50,7 +48,7 @@ EPISODES = [
             "links mit gebotener Sorgfalt sicherstellen."
         ),
         "reference_time": _utc(2024, 5, 18),
-        "group_ids": KOEHLER_GROUPS,
+        "group_id": KOEHLER_GROUP,
         "source_description": "Mietvertrag-Anlage Köhler",
     },
     {
@@ -65,7 +63,7 @@ EPISODES = [
             "bei nächster Wartung prüfen, ggf. tauschen.' Kosten 145,00 €."
         ),
         "reference_time": _utc(2024, 10, 12),
-        "group_ids": KOEHLER_GROUPS + [vendor_group("bergmann")],
+        "group_id": KOEHLER_GROUP,
         "source_description": "Vorgang VG-2024-0188",
     },
     {
@@ -82,7 +80,7 @@ EPISODES = [
             "anfragen."
         ),
         "reference_time": _utc(2024, 12, 2),
-        "group_ids": KOEHLER_GROUPS + [vendor_group("bergmann")],
+        "group_id": KOEHLER_GROUP,
         "source_description": "Vorgang VG-2024-0233",
     },
     {
@@ -101,7 +99,7 @@ EPISODES = [
             "Kosten 220,00 € (Notdienst-Aufschlag)."
         ),
         "reference_time": _utc(2025, 1, 22),
-        "group_ids": KOEHLER_GROUPS + [vendor_group("bergmann")],
+        "group_id": KOEHLER_GROUP,
         "source_description": "Vorgang VG-2025-0021",
     },
     {
@@ -119,7 +117,7 @@ EPISODES = [
             "das darf nicht nochmal passieren.'"
         ),
         "reference_time": _utc(2025, 2, 9),
-        "group_ids": KOEHLER_GROUPS,
+        "group_id": KOEHLER_GROUP,
         "source_description": "Vorgang VG-2025-0058",
     },
     {
@@ -142,7 +140,7 @@ EPISODES = [
             "nicht sofort entscheiden'. Angebot seit 7 Monaten unbearbeitet."
         ),
         "reference_time": _utc(2025, 4, 18),
-        "group_ids": KOEHLER_GROUPS + [vendor_group("bergmann")],
+        "group_id": KOEHLER_GROUP,
         "source_description": "Angebot Bergmann BH-2025-0044",
     },
     {
@@ -156,7 +154,7 @@ EPISODES = [
             "(im Wartungsvertrag enthalten)."
         ),
         "reference_time": _utc(2025, 4, 18),
-        "group_ids": KOEHLER_GROUPS + [vendor_group("bergmann")],
+        "group_id": KOEHLER_GROUP,
         "source_description": "Vorgang VG-2025-0142",
     },
     {
@@ -178,7 +176,7 @@ EPISODES = [
             "'Okay, danke. Notiere ich.'"
         ),
         "reference_time": _utc(2025, 11, 14, 16, 22),
-        "group_ids": KOEHLER_GROUPS,
+        "group_id": KOEHLER_GROUP,
         "source_description": "Slack/Internal chat Sarah ↔ Jonas",
     },
 ]
@@ -193,7 +191,7 @@ async def main() -> None:
                 name=ep["name"],
                 body=ep["body"],
                 reference_time=ep["reference_time"],
-                group_ids=ep["group_ids"],
+                group_id=ep["group_id"],
                 source_description=ep["source_description"],
             )
         except Exception as e:  # noqa: BLE001

@@ -140,10 +140,15 @@ async def add_episode(
     name: str,
     body: str,
     reference_time: datetime,
-    group_ids: list[str],
+    group_id: str,
     source_description: str = "",
 ) -> None:
-    """Pre-demo ingestion (scripts/ingest_graphiti.py)."""
+    """Pre-demo ingestion (scripts/ingest_graphiti.py).
+
+    Note: graphiti-core 0.29.1 takes a single group_id on write but accepts
+    multiple group_ids on search. Tenant-scope is what the demo queries
+    against, so we group by tenant.
+    """
     from graphiti_core.nodes import EpisodeType
     g = await get_graphiti()
     await g.add_episode(
@@ -152,7 +157,7 @@ async def add_episode(
         source=EpisodeType.message,
         source_description=source_description,
         reference_time=reference_time,
-        group_ids=group_ids,
+        group_id=group_id,
     )
 
 
@@ -161,23 +166,14 @@ async def add_message_episode(
     name: str,
     body: str,
     tenant_id: str,
-    unit_id: str | None,
+    unit_id: str | None,  # noqa: ARG001 — kept for caller compat
     sent_at: datetime,
 ) -> None:
-    """Convenience wrapper for the intake pipeline."""
-    group_ids = [tenant_group(tenant_id)]
-    if unit_id:
-        # Resolve unit's property and group by that too
-        from infra.db import connect
-        async with connect() as conn:
-            row = await conn.fetchrow(
-                "SELECT property_id FROM theo.units WHERE id = $1", unit_id,
-            )
-            if row and row["property_id"]:
-                group_ids.append(property_group(row["property_id"]))
+    """Convenience wrapper for the intake pipeline. Groups by tenant."""
     await add_episode(
         name=name, body=body, reference_time=sent_at,
-        group_ids=group_ids, source_description=f"intake from {tenant_id}",
+        group_id=tenant_group(tenant_id),
+        source_description=f"intake from {tenant_id}",
     )
 
 
