@@ -39,6 +39,25 @@ NEO4J_URI = os.environ.get("NEO4J_URI", "bolt://127.0.0.1:7687")
 NEO4J_USER = os.environ.get("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD")
 
+# Together AI / any OpenAI-compatible provider for Graphiti's LLM + embeddings.
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL")  # e.g. https://api.together.xyz/v1
+
+# Sensible defaults for Together AI. Override via env if using a different provider.
+GRAPHITI_LLM_MODEL = os.environ.get(
+    "GRAPHITI_LLM_MODEL",
+    "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+)
+GRAPHITI_SMALL_MODEL = os.environ.get(
+    "GRAPHITI_SMALL_MODEL",
+    "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+)
+GRAPHITI_EMBED_MODEL = os.environ.get(
+    "GRAPHITI_EMBED_MODEL",
+    "togethercomputer/m2-bert-80M-32k-retrieval",
+)
+GRAPHITI_EMBED_DIM = int(os.environ.get("GRAPHITI_EMBED_DIM", "768"))
+
 
 _graphiti: Any | None = None
 
@@ -46,24 +65,50 @@ _graphiti: Any | None = None
 def _require_keys() -> None:
     if not NEO4J_PASSWORD:
         raise RuntimeError("NEO4J_PASSWORD not set in env")
-    if not os.environ.get("OPENAI_API_KEY"):
+    if not OPENAI_API_KEY:
         raise RuntimeError(
-            "OPENAI_API_KEY not set — Graphiti needs it for fact extraction."
+            "OPENAI_API_KEY not set — Graphiti needs an OpenAI-compatible key "
+            "(Together AI in our setup). Add to /opt/fletcher/.env."
         )
 
 
 async def get_graphiti() -> Any:
-    """Lazy-initialize the singleton Graphiti client."""
+    """Lazy-initialize the singleton Graphiti client.
+
+    Configured for Together AI by default (OPENAI_BASE_URL=https://api.together.xyz/v1).
+    Falls back to OpenAI proper if OPENAI_BASE_URL is unset.
+    """
     global _graphiti
     if _graphiti is not None:
         return _graphiti
     _require_keys()
-    # Import lazily so the module imports even when graphiti-core can't fully
-    # initialize (e.g. on a dev machine without OPENAI_API_KEY).
-    from graphiti_core import Graphiti
 
-    _graphiti = Graphiti(NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD)
-    # build_indices_and_constraints() is idempotent and cheap.
+    from graphiti_core import Graphiti
+    from graphiti_core.embedder.openai import OpenAIEmbedder, OpenAIEmbedderConfig
+    from graphiti_core.llm_client.config import LLMConfig
+    from graphiti_core.llm_client.openai_client import OpenAIClient
+
+    llm_config = LLMConfig(
+        api_key=OPENAI_API_KEY,
+        base_url=OPENAI_BASE_URL,
+        model=GRAPHITI_LLM_MODEL,
+        small_model=GRAPHITI_SMALL_MODEL,
+    )
+    llm_client = OpenAIClient(config=llm_config)
+
+    embedder = OpenAIEmbedder(
+        config=OpenAIEmbedderConfig(
+            api_key=OPENAI_API_KEY,
+            base_url=OPENAI_BASE_URL,
+            embedding_model=GRAPHITI_EMBED_MODEL,
+            embedding_dim=GRAPHITI_EMBED_DIM,
+        )
+    )
+
+    _graphiti = Graphiti(
+        NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD,
+        llm_client=llm_client, embedder=embedder,
+    )
     await _graphiti.build_indices_and_constraints()
     return _graphiti
 
