@@ -1,0 +1,46 @@
+name: Deploy landing page
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'landing/**'
+      - '.github/workflows/deploy-landing.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-landing
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Rsync landing/ to getfletcher.ai
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy with rsync
+        run: |
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o UserKnownHostsFile=~/.ssh/known_hosts" \
+            landing/ \
+            github-runner@87.106.213.53:/opt/fletcher/frontend/dist/
+
+      - name: Smoke-test the live URL
+        run: |
+          code=$(curl -sS -o /dev/null -w "%{http_code}" https://getfletcher.ai/)
+          if [ "$code" != "200" ]; then
+            echo "::error::Expected HTTP 200, got $code"
+            exit 1
+          fi
+          echo "✓ https://getfletcher.ai responded $code"
