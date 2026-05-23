@@ -41,6 +41,66 @@ MAX_TURNS = 12
 _client: Anthropic | None = None
 
 
+def _parse_enrichment_payload(text: str) -> EnrichmentPayload | None:
+    """Lenient JSON extractor.
+
+    The model sometimes wraps its JSON in prose preamble despite the
+    system-prompt rule. We strip markdown fences, then scan for the first
+    top-level `{...}` block and try to parse it. Returns None on failure.
+    """
+    raw = text.strip()
+    # Strip ```json ... ``` style fences
+    if raw.startswith("```"):
+        raw = raw.strip("`")
+        raw = raw.split("\n", 1)[1] if "\n" in raw else raw
+        if raw.rstrip().endswith("```"):
+            raw = raw.rstrip()[:-3]
+        raw = raw.strip()
+
+    # Direct parse attempt
+    try:
+        return EnrichmentPayload.model_validate_json(raw)
+    except Exception:  # noqa: BLE001
+        pass
+
+    # Fallback: find first '{' then scan for the matching '}' with depth counting,
+    # ignoring braces inside strings.
+    start = raw.find("{")
+    if start < 0:
+        return None
+    depth = 0
+    in_str = False
+    esc = False
+    end = -1
+    for i in range(start, len(raw)):
+        ch = raw[i]
+        if esc:
+            esc = False
+            continue
+        if in_str:
+            if ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+    if end <= start:
+        return None
+    candidate = raw[start:end]
+    try:
+        return EnrichmentPayload.model_validate_json(candidate)
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def _get_client() -> Anthropic:
     global _client
     if _client is None:
@@ -383,21 +443,13 @@ async def enrich_ticket(ticket_id: str) -> EnrichmentPayload:
         await log_trace_step(ticket_id, step, "error",
                               {"reason": "MAX_TURNS reached without end_turn"})
 
-    # Parse final text as EnrichmentPayload
-    text = final_text.strip()
-    if text.startswith("```"):
-        text = text.strip("`")
-        text = text.split("\n", 1)[1] if "\n" in text else text
-        if text.endswith("```"):
-            text = text[:-3]
-        text = text.strip()
-
-    try:
-        payload = EnrichmentPayload.model_validate_json(text)
-    except Exception as e:  # noqa: BLE001
+    # Parse final text as EnrichmentPayload — be lenient about preamble prose
+    payload = _parse_enrichment_payload(final_text)
+    if payload is None:
         await log_trace_step(ticket_id, step, "error",
-                              {"parse_error": str(e), "raw": text[:1000]})
-        raise
+                              {"parse_error": "could not extract valid JSON",
+                               "raw": final_text[:1500]})
+        raise ValueError("could not extract a valid EnrichmentPayload from model output")
 
     # Persist
     payload_json = payload.model_dump(mode="json")
