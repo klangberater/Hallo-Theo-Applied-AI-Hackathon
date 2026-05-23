@@ -95,66 +95,62 @@ def _reset_demo() -> dict:
 # ---------------------------------------------------------------------------
 
 def render() -> None:
-    """Mount the demo controls in the Streamlit sidebar."""
-    with st.sidebar:
-        st.markdown(
-            "<p style='font-family:var(--font-serif);font-style:italic;"
-            "font-weight:500;color:var(--teal-700);font-size:var(--text-lg);"
-            "margin:0 0 var(--space-2)'>Demo-Steuerung</p>",
-            unsafe_allow_html=True,
+    """Mount the demo controls as a collapsible expander at the top of the page."""
+    with st.expander("🎭 Demo-Steuerung", expanded=False):
+        st.caption(
+            "Live-Trigger pro Szenario. Während der eigentlichen Vorführung "
+            "zugeklappt lassen."
         )
-        st.caption("Während der Vorführung sichtbar — Live-Trigger pro Szenario.")
+
+        cols = st.columns(3)
 
         # --- Köhler ---
-        st.markdown("---")
-        st.markdown("**📱 Frau Köhler — Heizung**")
-        st.caption("Bevorzugt: WhatsApp vom echten Telefon. Knopf nur als Fallback.")
-        if st.button("Köhler-WhatsApp simulieren", use_container_width=True,
-                     key="demo_fire_koehler"):
-            with st.spinner("Sende WhatsApp-Webhook…"):
-                result = _fire_koehler()
-            if "ticket_id" in result:
-                st.success(f"Ticket {result['ticket_id']} erstellt — Inbox refreshen.")
-                st.session_state["last_fired"] = result["ticket_id"]
-            else:
-                st.error(result.get("error") or str(result))
+        with cols[0]:
+            st.markdown("**📱 Köhler — Heizung**")
+            st.caption("Fallback. Live-Demo: WhatsApp vom echten Telefon.")
+            if st.button("Köhler simulieren", use_container_width=True,
+                         key="demo_fire_koehler"):
+                with st.spinner("Sende WhatsApp-Webhook…"):
+                    result = _fire_koehler()
+                if "ticket_id" in result:
+                    st.success(f"Ticket {result['ticket_id']} erstellt.")
+                    st.session_state["last_fired"] = result["ticket_id"]
+                else:
+                    st.error(result.get("error") or str(result))
 
         # --- Demir ---
-        st.markdown("---")
-        st.markdown("**✉ Familie Demir — NK-Beanstandung**")
-        st.caption("Formelle E-Mail von y.demir@gmx.de an Sarah.")
-        if st.button("Demir-E-Mail abfeuern", use_container_width=True,
-                     type="primary", key="demo_fire_demir"):
-            with st.spinner("Sende E-Mail-Webhook…"):
-                result = _fire_demir()
-            if "ticket_id" in result:
-                st.success(f"Ticket {result['ticket_id']} erstellt — Inbox refreshen.")
-                st.session_state["last_fired"] = result["ticket_id"]
-            else:
-                st.error(result.get("error") or str(result))
+        with cols[1]:
+            st.markdown("**✉ Demir — NK-Beanstandung**")
+            st.caption("Formelle E-Mail von y.demir@gmx.de.")
+            if st.button("Demir abfeuern", use_container_width=True,
+                         type="primary", key="demo_fire_demir"):
+                with st.spinner("Sende E-Mail-Webhook…"):
+                    result = _fire_demir()
+                if "ticket_id" in result:
+                    st.success(f"Ticket {result['ticket_id']} erstellt.")
+                    st.session_state["last_fired"] = result["ticket_id"]
+                else:
+                    st.error(result.get("error") or str(result))
 
         # --- Reset ---
-        st.markdown("---")
-        st.markdown("**↻ Demo zurücksetzen**")
-        st.caption("Wipe + re-seed: alle Tickets weg, Schornsteinfeger wieder als "
-                   "autonom-erledigt eingespielt.")
-        if st.button("Zurücksetzen", use_container_width=True, key="demo_reset"):
-            with st.spinner("Setze Demo-Status zurück…"):
-                result = _reset_demo()
-            if result["ok"]:
-                # Clear UI selection
-                st.session_state.pop("selected_ticket_id", None)
-                st.session_state.opened_ticket_ids = set()
-                st.success("Demo zurückgesetzt.")
-                time.sleep(1)
-                st.rerun()
-            else:
-                st.error(f"Fehler: {result.get('stderr', 'unknown')}")
+        with cols[2]:
+            st.markdown("**↻ Zurücksetzen**")
+            st.caption("Wipe + re-seed inkl. Schornsteinfeger.")
+            if st.button("Demo zurücksetzen", use_container_width=True,
+                         key="demo_reset"):
+                with st.spinner("Setze zurück…"):
+                    result = _reset_demo()
+                if result["ok"]:
+                    st.session_state.pop("selected_ticket_id", None)
+                    st.session_state.opened_ticket_ids = set()
+                    st.success("Demo zurückgesetzt.")
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error(f"Fehler: {result.get('stderr', 'unknown')}")
 
-        # Last-fired hint
         if st.session_state.get("last_fired"):
-            st.markdown("---")
             st.caption(
                 f"Letzter Trigger: `{st.session_state['last_fired']}` — "
-                "Enrichment ~60s."
+                "Enrichment dauert ~60 s."
             )
