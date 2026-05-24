@@ -248,17 +248,50 @@ async def get_trace(ticket_id: str) -> list[dict]:
 
 @router.get("/tickets/{ticket_id}/thread")
 async def get_thread(ticket_id: str) -> list[dict]:
+    """Return the slice of the channel thread that belongs to THIS ticket.
+
+    A WhatsApp/email thread is keyed by (channel, tenant, day), so a single
+    tenant who sends two unrelated messages on the same day gets two tickets
+    sharing one thread. Returning the whole thread for every ticket means
+    clicking either ticket shows the same conversation — confusing.
+
+    Slice the thread by time window:
+      lower bound = this ticket's opened_at (inclusive)
+      upper bound = the next ticket on the same thread's opened_at (exclusive)
+    """
     async with connect() as conn:
         row = await conn.fetchrow(
-            "SELECT source_thread_id FROM theo.tickets WHERE id = $1", ticket_id,
+            "SELECT source_thread_id, opened_at FROM theo.tickets WHERE id = $1",
+            ticket_id,
         )
         if row is None or row["source_thread_id"] is None:
             return []
-        rows = await conn.fetch(
-            "SELECT * FROM theo.channel_messages WHERE thread_id = $1 "
-            "ORDER BY sent_at ASC",
-            row["source_thread_id"],
+        thread_id = row["source_thread_id"]
+        opened_at = row["opened_at"]
+
+        # Find the next ticket on the same thread, if any. Its opened_at
+        # becomes the exclusive upper bound for this ticket's slice.
+        boundary_row = await conn.fetchrow(
+            "SELECT MIN(opened_at) AS boundary FROM theo.tickets "
+            "WHERE source_thread_id = $1 AND opened_at > $2",
+            thread_id, opened_at,
         )
+        boundary = boundary_row["boundary"] if boundary_row else None
+
+        if boundary is None:
+            rows = await conn.fetch(
+                "SELECT * FROM theo.channel_messages "
+                "WHERE thread_id = $1 AND sent_at >= $2 "
+                "ORDER BY sent_at ASC",
+                thread_id, opened_at,
+            )
+        else:
+            rows = await conn.fetch(
+                "SELECT * FROM theo.channel_messages "
+                "WHERE thread_id = $1 AND sent_at >= $2 AND sent_at < $3 "
+                "ORDER BY sent_at ASC",
+                thread_id, opened_at, boundary,
+            )
     return [dict(r) for r in rows]
 
 
