@@ -56,9 +56,18 @@ export default function Page() {
   useEffect(() => {
     if (!selectedId) { setDetail(null); return; }
     setOpenedIds((prev) => new Set(prev).add(selectedId));
-    api.getTicket(selectedId).then(setDetail).catch((e) => {
+    // Clear stale detail immediately so the panes show a loading state
+    // instead of the previous ticket's data while the fetch is in flight.
+    setDetail(null);
+    // Guard: by the time the fetch returns, the user may have clicked a
+    // different ticket. Only apply if the response is for the still-selected
+    // id (matches `selectedId` from this effect's closure, which is the id
+    // we requested).
+    const requestedId = selectedId;
+    api.getTicket(requestedId).then((d) => {
+      if (d?.id === requestedId) setDetail(d);
+    }).catch((e) => {
       console.error(e);
-      setDetail(null);
     });
   }, [selectedId]);
 
@@ -73,7 +82,12 @@ export default function Page() {
     const id = setInterval(() => {
       refresh();
       if (selectedId) {
-        api.getTicket(selectedId).then(setDetail).catch(() => {});
+        const requestedId = selectedId;
+        api.getTicket(requestedId).then((d) => {
+          // Race guard: discard the response if the user has clicked
+          // somewhere else in the meantime.
+          if (d?.id === requestedId) setDetail(d);
+        }).catch(() => {});
       }
     }, intervalMs);
     return () => clearInterval(id);
@@ -177,10 +191,18 @@ export default function Page() {
           </div>
         </aside>
 
-        {/* Column 2: ticket detail (conversation + actions) */}
+        {/* Column 2: ticket detail (conversation + actions).
+             key={detail.id} forces a fresh mount when switching tickets,
+             so any internal state (messages, expanded sections, busy
+             buttons) is reset rather than carried across to the new
+             ticket. Belt-and-braces alongside the parent-level clearing. */}
         <main className="flex-1 min-w-0 overflow-y-auto bg-paper-50">
           {detail ? (
-            <TicketView ticket={detail} onAfter={onAfterMutation} />
+            <TicketView key={detail.id} ticket={detail} onAfter={onAfterMutation} />
+          ) : selectedId ? (
+            <div className="flex h-full items-center justify-center text-paper-400 font-serif italic">
+              Lade Ticket…
+            </div>
           ) : (
             <div className="flex h-full items-center justify-center text-paper-400 font-serif italic">
               {view === 'archive'
@@ -190,14 +212,22 @@ export default function Page() {
           )}
         </main>
 
-        {/* Column 3: enrichment context */}
-        {detail && (
+        {/* Column 3: enrichment context. Aside is shown whenever a ticket
+             is selected (not just when detail has loaded), so the layout
+             doesn't jump on selection change. Same key trick. */}
+        {selectedId && (
           <aside className="w-[400px] shrink-0 border-l border-paper-200 bg-paper-100 overflow-y-auto">
             <h2 className="px-5 pt-4 pb-2 text-xs font-semibold uppercase tracking-wider text-paper-500">
               Anreicherung
             </h2>
             <div className="px-5 pb-6">
-              <EnrichmentCards ticket={detail} />
+              {detail
+                ? <EnrichmentCards key={detail.id} ticket={detail} />
+                : (
+                  <div className="rounded-md border border-paper-200 bg-white px-5 py-4 text-sm text-paper-500">
+                    Lade…
+                  </div>
+                )}
             </div>
           </aside>
         )}
