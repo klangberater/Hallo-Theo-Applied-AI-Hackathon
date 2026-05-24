@@ -518,9 +518,15 @@ async def demo_reset() -> dict:
 
 
 async def _run_enrichment_async(ticket_id: str) -> None:
-    """Wrapper so we can use it as a BackgroundTask without re-importing."""
+    """Wrapper so we can use it as a BackgroundTask without re-importing.
+
+    Mirror the start/complete logging from intake/main.py so demo-fire
+    tickets are visible in the trace, not just exceptions.
+    """
     from agent.enrichment_loop import enrich_ticket
     try:
+        log.info("starting enrichment for %s (demo path)", ticket_id)
         await enrich_ticket(ticket_id)
+        log.info("enrichment complete for %s", ticket_id)
     except Exception as e:  # noqa: BLE001
         log.exception("enrichment failed for %s: %s", ticket_id, e)

@@ -62,6 +62,24 @@ export default function Page() {
     });
   }, [selectedId]);
 
+  // Auto-poll the inbox + the currently-selected ticket so new arrivals show
+  // up without a manual click. Archive view is historical → no polling.
+  // Faster cadence while a ticket is being enriched so the operator sees
+  // the right pane populate live.
+  useEffect(() => {
+    if (view !== 'inbox') return;
+    const isEnriching = detail?.status === 'enriching';
+    const intervalMs = isEnriching ? 2500 : 5000;
+    const id = setInterval(() => {
+      refresh();
+      if (selectedId) {
+        api.getTicket(selectedId).then(setDetail).catch(() => {});
+      }
+    }, intervalMs);
+    return () => clearInterval(id);
+    /* eslint-disable-next-line */
+  }, [view, selectedId, detail?.status]);
+
   const onAfterMutation = async () => {
     await refresh();
     if (selectedId) {
