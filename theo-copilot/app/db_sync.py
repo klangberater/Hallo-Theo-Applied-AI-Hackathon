@@ -139,13 +139,17 @@ def fetch_ticket_list(
             "   OR (t.done_at IS NOT NULL "
             "       AND t.done_at >= now() - (INTERVAL '1 hour' * %(grace)s))"
         )
+        # State wins — Done tickets sort below the still-open ones. Within
+        # each group: priority (DRINGEND first), then recency. Mirrors the
+        # Next.js backend (intake/api_routes.py::list_tickets).
         order = (
             "ORDER BY "
-            # Done tickets sort below open ones.
             "  CASE WHEN t.done_at IS NULL THEN 0 ELSE 1 END, "
-            # Within open: autonomous-done tickets float to the top.
-            "  CASE WHEN t.enrichment->>'autonomy_mode' = 'autonomous_done' "
-            "       THEN 0 ELSE 1 END, "
+            "  CASE t.priority "
+            "    WHEN 'DRINGEND' THEN 0 "
+            "    WHEN 'Wichtig'  THEN 1 "
+            "    WHEN 'Hoch'     THEN 1 "
+            "    ELSE 2 END, "
             "  t.opened_at DESC NULLS LAST"
         )
 
