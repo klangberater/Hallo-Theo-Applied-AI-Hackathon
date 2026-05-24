@@ -409,7 +409,7 @@ hallo-theo-applied-ai-hackathon/
 A reproducible 3-minute walkthrough that exercises every layer:
 
 1. **Open** [getfletcher.ai/inbox](https://getfletcher.ai/inbox). Three tickets visible in priority order.
-2. **Köhler (DRINGEND, top of list)** — click row.
+2. **Köhler (DRINGEND, top of list)** — the operator sends a real WhatsApp from their phone to the paired number ("Die Heizung im Wohnzimmer ist seit heute Nachmittag wieder kalt. …"). Within ~2s the tenant gets an automatic ack on their phone; within ~10–30s the enriched ticket appears at the top of the inbox. (Fallback if the bridge is down: open `/inbox/demo/` and click "Köhler simulieren".) Click the new row in the inbox.
    - Right pane shows: tenant + unit + lease, recurring-pattern badge (🔁 3 — three winters), wiki snippet (BGB §555c), suggested vendor (Heizungsbau Walter).
    - Click **"Aktionen umsetzen"** — three actions execute, ticket closes, outbound WhatsApp drafted.
    - Click the **trace tab** — see every L1/L2/L3 tool call the agent made.

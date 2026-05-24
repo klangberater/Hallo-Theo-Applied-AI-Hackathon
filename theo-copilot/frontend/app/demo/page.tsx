@@ -5,13 +5,21 @@
  *
  * Lives at /inbox/demo/ so it can be opened in a second browser tab (or on a
  * second laptop) while the main inbox is mirrored to the projector. The jury
- * sees a clean inbox; the operator clicks Demo buttons here without anyone
- * noticing.
+ * sees a clean inbox; the operator works from here.
+ *
+ * Three things happen during a demo:
+ *   1. Köhler — the operator sends a REAL WhatsApp from their phone to the
+ *      paired number. No button needed for the happy path. The "Köhler
+ *      simulieren" button only exists as a fallback if the Baileys bridge
+ *      is offline.
+ *   2. Demir — email-from-phone is not in scope, so this is a real button
+ *      that injects the pre-canned formal email.
+ *   3. Reset — wipes Postgres state + re-seeds between dry runs.
  */
 import { useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { ArrowLeft, MessageSquare, Mail, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Mail, MessageSquare, RotateCcw, AlertTriangle } from 'lucide-react';
 
 type Action = 'koehler' | 'demir' | 'reset';
 
@@ -64,26 +72,44 @@ export default function DemoPage() {
       {/* Body */}
       <main className="mx-auto max-w-3xl px-8 py-8">
         <p className="mb-6 text-sm text-paper-600">
-          Diese Seite ist für den Pitch gedacht: in einem zweiten Browser-Tab
-          öffnen, sodass der Jury im Haupttab nur der Posteingang gezeigt
-          wird. Aktionen wirken sich sofort auf den Posteingang aus — dort
-          „Aktualisieren" klicken oder auf das neue Ticket warten.
+          In einem zweiten Browser-Tab öffnen — der Jury im Haupttab nur den
+          Posteingang zeigen. Aktionen wirken sich sofort auf den Posteingang
+          aus; dort „Aktualisieren" klicken oder kurz warten.
         </p>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <ActionCard
-            icon={<MessageSquare size={20} />}
-            title="Köhler — Heizung"
-            description="WhatsApp-Eingang simulieren (Fallback, wenn die echte WhatsApp-Brücke nicht antwortet)."
-            buttonLabel={busy === 'koehler' ? 'Sende…' : 'Köhler simulieren'}
-            onClick={() => fire('koehler')}
-            disabled={busy !== null}
-            variant="outline"
-          />
+        {/* Primary path: real WhatsApp */}
+        <section className="mb-8 rounded-lg border border-teal-200 bg-teal-50 p-5">
+          <div className="flex items-start gap-3">
+            <div className="rounded-md bg-teal-600 p-2 text-white">
+              <MessageSquare size={18} />
+            </div>
+            <div className="flex-1">
+              <h2 className="mb-1 font-semibold text-paper-900">
+                Köhler — echte WhatsApp
+              </h2>
+              <p className="text-sm text-paper-700">
+                Sende eine WhatsApp an die mit dem System gepairte Nummer.
+                Die Nachricht landet automatisch über die Baileys-Brücke im
+                Posteingang — kein Knopfdruck nötig. Beispiel-Text:
+              </p>
+              <pre className="mt-3 rounded-md border border-teal-200 bg-white px-3 py-2 text-xs text-paper-700 whitespace-pre-wrap font-mono">
+{`Die Heizung im Wohnzimmer ist seit heute Nachmittag wieder kalt.
+Das ist jetzt das sechste Mal mit demselben Heizkörper.
+Für Donnerstag und Freitag ist Frost angekündigt.`}
+              </pre>
+            </div>
+          </div>
+        </section>
+
+        {/* Real buttons: email + reset */}
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-paper-500">
+          Andere Aktionen
+        </h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <ActionCard
             icon={<Mail size={20} />}
             title="Demir — NK-Beanstandung"
-            description="Formelle E-Mail von y.demir@gmx.de auslösen."
+            description="Formelle E-Mail von y.demir@gmx.de auslösen (E-Mail-Eingang ist nicht an einen echten Provider angebunden)."
             buttonLabel={busy === 'demir' ? 'Sende…' : 'Demir abfeuern'}
             onClick={() => fire('demir')}
             disabled={busy !== null}
@@ -92,13 +118,37 @@ export default function DemoPage() {
           <ActionCard
             icon={<RotateCcw size={20} />}
             title="Zurücksetzen"
-            description="Datenbank wipen + Seed neu laden (inkl. Schornsteinfeger)."
+            description="Datenbank wipen + Seed neu laden (inkl. Schornsteinfeger-Autonom-Ticket)."
             buttonLabel={busy === 'reset' ? 'Setze zurück…' : 'Zurücksetzen'}
             onClick={() => fire('reset')}
             disabled={busy !== null}
             variant="outline"
           />
         </div>
+
+        {/* Fallback */}
+        <section className="mt-10">
+          <details className="rounded-md border border-paper-200 bg-white">
+            <summary className="cursor-pointer px-4 py-2 text-sm font-medium text-paper-600 hover:bg-paper-50 flex items-center gap-2">
+              <AlertTriangle size={14} className="text-amber-500" />
+              Fallback: Köhler-WhatsApp simulieren (Brücke offline)
+            </summary>
+            <div className="border-t border-paper-200 px-4 py-3">
+              <p className="mb-3 text-xs text-paper-500">
+                Nur klicken, wenn die WhatsApp-Brücke nicht antwortet oder das
+                gepairte Telefon nicht erreichbar ist. Erzeugt das gleiche
+                Ticket, als käme es per echter WhatsApp herein.
+              </p>
+              <button
+                onClick={() => fire('koehler')}
+                disabled={busy !== null}
+                className="rounded-md border border-paper-300 bg-white px-3 py-2 text-sm font-medium hover:bg-paper-50 disabled:opacity-50"
+              >
+                {busy === 'koehler' ? 'Sende…' : 'Köhler simulieren'}
+              </button>
+            </div>
+          </details>
+        </section>
 
         {/* Log */}
         <section className="mt-10">
