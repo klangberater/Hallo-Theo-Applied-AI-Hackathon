@@ -53,8 +53,8 @@ The manager either reviews and clicks "Aktionen umsetzen", or for low-risk routi
 
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   WhatsApp   │     │    Email     │     │  Voicemail   │  (channels)
-│  (Baileys)   │     │   (stub)     │     │   (stub)     │
+│   WhatsApp   │     │    Email     │     │  Voice Call  │  (channels)
+│  (Baileys)   │     │   (stub)     │     │ (ElevenLabs) │
 └──────┬───────┘     └──────┬───────┘     └──────┬───────┘
        │                    │                    │
        ▼                    ▼                    ▼
@@ -139,7 +139,8 @@ The manager either reviews and clicks "Aktionen umsetzen", or for low-risk routi
 | Component | Choice | Notes |
 |---|---|---|
 | WhatsApp | **Baileys** (`@whiskeysockets/baileys` 6.7+) on Node 20 | QR pairing at `/pair`, multi-device, self-chat supported |
-| Email / Voicemail | Stubbed | inbound via REST seed, not a live provider |
+| Voice (inbound) | **ElevenLabs Conversational AI** | German voice agent answers, transcript + summary POSTed to `/webhook/voicecall` on hang-up. Native phone number (Twilio under the hood). |
+| Email | Stubbed | inbound via REST seed, not a live provider |
 
 ### Infrastructure
 | Component | Choice |
@@ -214,6 +215,8 @@ GRAPHITI_EMBED_DIM=1024
 USE_LIVE_GRAPHITI=true                     # set false to use kill-switch cache
 
 WHATSAPP_BRIDGE_URL=http://127.0.0.1:8003  # where intake POSTs outbound msgs
+
+ELEVENLABS_WEBHOOK_SECRET=                 # HMAC secret for /webhook/voicecall
 ```
 
 ---
@@ -259,6 +262,7 @@ The FastAPI app exposes two surfaces: **inbound webhooks** (channels post here) 
 | `GET` | `/health` | — | `{"status": "ok"}` |
 | `POST` | `/webhook/whatsapp` | `{from: str, body: str, sent_at?: iso8601, external_thread_id?: str}` | `{status: "accepted", ticket_id, intent, priority}` |
 | `POST` | `/webhook/email` | `{from_email, subject, body, sent_at?}` | same shape as WhatsApp |
+| `POST` | `/webhook/voicecall` | `{from, transcript, summary?, conversation_id?, duration_seconds?, call_started_at?}` | ElevenLabs post-call webhook. HMAC-signed via `ElevenLabs-Signature` header when `ELEVENLABS_WEBHOOK_SECRET` is set. Same response shape. |
 | `POST` | `/tickets/{ticket_id}/enrich` | — | triggers re-enrichment for an existing ticket |
 
 ### Inbox read API (consumed by the frontend)

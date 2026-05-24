@@ -11,6 +11,7 @@ graph TB
     subgraph Clients
         WEB["Web Browser<br/>React SPA"]
         WA["WhatsApp Bot<br/>(Twilio / Baileys)"]
+        VC["Voice Call<br/>(ElevenLabs Conversational AI)"]
         SLK["Slack Bot<br/>(Bolt SDK)"]
     end
 
@@ -36,6 +37,7 @@ graph TB
 
     WEB -->|HTTPS| API
     WA -->|webhook| API
+    VC -->|post-call webhook| API
     SLK -->|events| API
 
     API --> COPILOT
