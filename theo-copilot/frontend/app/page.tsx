@@ -106,6 +106,30 @@ export default function Page() {
     }
   };
 
+  // After a reopen, the ticket is no longer in the archive view. If the
+  // user is sitting in the archive tab, switch them to Posteingang and
+  // pre-select the reopened ticket so they actually see it return.
+  const onReopened = async (id: string) => {
+    setSelectedId(id);
+    if (view === 'archive') {
+      setView('inbox');  // useEffect [view] re-fetches the inbox list
+    }
+    // Explicitly re-fetch in case we were already in inbox (no view change
+    // → no auto-refresh) AND to refresh the detail with the new state.
+    try {
+      const [list, count, d] = await Promise.all([
+        api.listTickets('inbox'),
+        api.countOpen().catch(() => ({ count: 0 })),
+        api.getTicket(id),
+      ]);
+      setTickets(list);
+      setOpenCount(count.count);
+      setDetail(d);
+    } catch (e: any) {
+      console.error(e);
+    }
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
@@ -198,7 +222,12 @@ export default function Page() {
              ticket. Belt-and-braces alongside the parent-level clearing. */}
         <main className="flex-1 min-w-0 overflow-y-auto bg-paper-50">
           {detail ? (
-            <TicketView key={detail.id} ticket={detail} onAfter={onAfterMutation} />
+            <TicketView
+              key={detail.id}
+              ticket={detail}
+              onAfter={onAfterMutation}
+              onReopened={onReopened}
+            />
           ) : selectedId ? (
             <div className="flex h-full items-center justify-center text-paper-400 font-serif italic">
               Lade Ticket…

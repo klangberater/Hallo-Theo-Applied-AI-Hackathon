@@ -209,12 +209,20 @@ def mark_ticket_done(
 
 
 def reopen_ticket(ticket_id: str, reopened_by: str = "Sarah Weber") -> None:
-    """Return a Done or Archived ticket to the Open state."""
+    """Return a Done or Archived ticket to the Open state.
+
+    Also flips status='closed' (legacy seed tickets) → 'open' so the
+    row leaves the archive's `OR status='closed'` match.
+    """
     conn = get_conn()
     with conn.cursor() as cur:
         cur.execute(
             "UPDATE theo.tickets "
-            "SET done_at = NULL, done_by = NULL, resolution_note = NULL "
+            "SET done_at = NULL, "
+            "    done_by = NULL, "
+            "    resolution_note = NULL, "
+            "    status = CASE WHEN status = 'closed' THEN 'open' "
+            "                  ELSE status END "
             "WHERE id = %s",
             (ticket_id,),
         )

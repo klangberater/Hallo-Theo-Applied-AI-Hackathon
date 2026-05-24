@@ -133,7 +133,10 @@ function MarkDoneDialog({
 
 function DoneBanner({
   ticket, onReopened,
-}: { ticket: TicketDetail; onReopened: () => Promise<void> | void }) {
+}: {
+  ticket: TicketDetail;
+  onReopened: (ticketId: string) => Promise<void> | void;
+}) {
   // Hooks must run unconditionally — declare them before any early return.
   const [busy, setBusy] = useState(false);
   const state = ticket.derived_state;
@@ -143,7 +146,7 @@ function DoneBanner({
     setBusy(true);
     try {
       await api.reopen(ticket.id);
-      await onReopened();
+      await onReopened(ticket.id);
     } catch (e: any) {
       console.error(e);
       alert(`Fehler: ${e?.message || e}`);
@@ -189,10 +192,17 @@ function DoneBanner({
 }
 
 export function TicketView({
-  ticket, onAfter,
-}: { ticket: TicketDetail; onAfter: () => Promise<void> | void }) {
+  ticket, onAfter, onReopened,
+}: {
+  ticket: TicketDetail;
+  onAfter: () => Promise<void> | void;
+  onReopened?: (ticketId: string) => Promise<void> | void;
+}) {
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Fall back to onAfter (ignoring the ticket id) if the parent didn't
+  // wire a dedicated reopen callback.
+  const handleReopen = onReopened ?? (async () => { await onAfter(); });
 
   useEffect(() => {
     // Clear stale messages from the previously-selected ticket so we never
@@ -237,7 +247,7 @@ export function TicketView({
       </header>
 
       {/* Done / Archived banner */}
-      <DoneBanner ticket={ticket} onReopened={onAfter} />
+      <DoneBanner ticket={ticket} onReopened={handleReopen} />
 
       {/* Conversation */}
       <section className="mb-6">

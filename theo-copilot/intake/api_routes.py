@@ -211,13 +211,23 @@ async def mark_done(
 
 @router.post("/tickets/{ticket_id}/reopen")
 async def reopen(ticket_id: str) -> dict:
-    """Return a Done or Archived ticket to the Open state."""
+    """Return a Done or Archived ticket to the Open state.
+
+    Clears done_at (the Mark-as-Done state) AND status='closed' (legacy
+    historical tickets that were seeded as closed). Without flipping
+    status, those rows would remain visible in the archive view, which
+    matches `OR status='closed'`.
+    """
     reopened_by = "Sarah Weber"
     async with connect() as conn:
         async with conn.transaction():
             result = await conn.execute(
                 "UPDATE theo.tickets "
-                "SET done_at = NULL, done_by = NULL, resolution_note = NULL "
+                "SET done_at = NULL, "
+                "    done_by = NULL, "
+                "    resolution_note = NULL, "
+                "    status = CASE WHEN status = 'closed' THEN 'open' "
+                "                  ELSE status END "
                 "WHERE id = $1",
                 ticket_id,
             )
