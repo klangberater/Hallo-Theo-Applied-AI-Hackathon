@@ -100,6 +100,7 @@ Copy `.env.example` → `/opt/fletcher/.env` on the server (or `.env` locally) a
 | `GRAPHITI_EMBED_MODEL` | graphiti_client | default: `intfloat/multilingual-e5-large-instruct` |
 | `USE_LIVE_GRAPHITI` | l3_memory tool | `false` flips to kill-switch cache |
 | `WHATSAPP_BRIDGE_URL` | intake_service | where to POST outbound (default `http://127.0.0.1:8003`) |
+| `ELEVENLABS_API_KEY` | scripts/setup_voice_agent.py | workspace API key — needed to (re-)configure the voice agent. Not read at runtime. |
 | `ELEVENLABS_WEBHOOK_SECRET` | intake/main.py | shared HMAC secret for the `/webhook/voicecall` post-call signature. Unset = unsigned requests accepted (dev only). |
 
 ---

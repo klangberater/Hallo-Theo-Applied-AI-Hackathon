@@ -262,7 +262,7 @@ The FastAPI app exposes two surfaces: **inbound webhooks** (channels post here) 
 | `GET` | `/health` | — | `{"status": "ok"}` |
 | `POST` | `/webhook/whatsapp` | `{from: str, body: str, sent_at?: iso8601, external_thread_id?: str}` | `{status: "accepted", ticket_id, intent, priority}` |
 | `POST` | `/webhook/email` | `{from_email, subject, body, sent_at?}` | same shape as WhatsApp |
-| `POST` | `/webhook/voicecall` | `{from, transcript, summary?, conversation_id?, duration_seconds?, call_started_at?}` | ElevenLabs post-call webhook. HMAC-signed via `ElevenLabs-Signature` header when `ELEVENLABS_WEBHOOK_SECRET` is set. Same response shape. |
+| `POST` | `/webhook/voicecall` | `{from, transcript, summary?, conversation_id?, duration_seconds?, call_started_at?}` | ElevenLabs post-call webhook. HMAC-signed via `ElevenLabs-Signature` header when `ELEVENLABS_WEBHOOK_SECRET` is set. Same response shape. Voice agent is configured via `python -m scripts.setup_voice_agent` (see `theo-copilot/scripts/setup_voice_agent.py`). |
 | `POST` | `/tickets/{ticket_id}/enrich` | — | triggers re-enrichment for an existing ticket |
 
 ### Inbox read API (consumed by the frontend)
