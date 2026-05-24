@@ -1,3 +1,7 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import type { TicketDetail } from '@/lib/api';
 
 function Card({ title, source, children }: {
@@ -64,12 +68,79 @@ function PatternTimeline({ entries }: { entries: any[] }) {
   );
 }
 
+// Hints rotated through during the ~30–80s enrichment window. Each one
+// reflects something the agent actually does — L1 wiki search, L2 Postgres
+// lookup, L3 Graphiti temporal query — so the operator can see roughly
+// what's happening even though we don't stream real trace events yet.
+const ENRICHING_HINTS = [
+  'Mieterhistorie wird geladen…',
+  'Vergangene Vorfälle werden gesucht…',
+  'Mietvertrag wird ausgelesen…',
+  'Wiki wird durchsucht (BGB, BetrKV, interne Richtlinien)…',
+  'Vendor-Angebote werden geprüft…',
+  'Wetterprognose wird abgerufen…',
+  'Vorschläge werden formuliert…',
+];
+
+function SkeletonCard({ heightClass = 'h-16' }: { heightClass?: string }) {
+  return (
+    <div className="rounded-md border border-paper-200 bg-white px-5 py-4 mb-3">
+      <div className="h-3 w-32 rounded bg-paper-200 mb-3 animate-pulse" />
+      <div className={`${heightClass} rounded bg-paper-100 animate-pulse`} />
+    </div>
+  );
+}
+
+function EnrichingState({ ticket }: { ticket: TicketDetail }) {
+  const [hintIdx, setHintIdx] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setHintIdx((i) => (i + 1) % ENRICHING_HINTS.length);
+    }, 2500);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div>
+      <div className="rounded-md border border-teal-200 bg-teal-50 px-5 py-4 mb-3">
+        <div className="flex items-center gap-3">
+          <Loader2 size={18} className="animate-spin text-teal-700 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-teal-900">
+              Fletcher Copilot reichert das Ticket an
+            </p>
+            <p className="text-xs text-teal-700 mt-0.5 transition-opacity">
+              {ENRICHING_HINTS[hintIdx]}
+            </p>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-teal-700/70">
+          Dauert typischerweise 30–80 Sekunden. Die Anreicherung erscheint
+          automatisch, sobald sie fertig ist.
+        </p>
+      </div>
+
+      {/* Skeleton placeholders that roughly match the real card layout, so
+          the right pane doesn't jump when the real data arrives. */}
+      <SkeletonCard heightClass="h-12" />
+      <SkeletonCard heightClass="h-20" />
+      <SkeletonCard heightClass="h-32" />
+      <SkeletonCard heightClass="h-16" />
+    </div>
+  );
+}
+
 export function EnrichmentCards({ ticket }: { ticket: TicketDetail }) {
   const e = ticket.enrichment;
   if (!e) {
+    // Show the rich enriching state for any ticket that's still being
+    // processed (open OR enriching). Only fall back to "Keine Anreicherung"
+    // for clearly-finished tickets that simply have no enrichment payload.
+    const isInFlight = ticket.status === 'open' || ticket.status === 'enriching';
+    if (isInFlight) return <EnrichingState ticket={ticket} />;
     return (
       <div className="rounded-md border border-paper-200 bg-white px-5 py-4 text-sm text-paper-500">
-        {ticket.status === 'enriching' ? 'Fletcher Copilot reichert das Ticket an…' : 'Keine Anreicherungsdaten.'}
+        Keine Anreicherungsdaten.
       </div>
     );
   }
