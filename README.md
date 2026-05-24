@@ -139,7 +139,7 @@ The manager either reviews and clicks "Aktionen umsetzen", or for low-risk routi
 | Component | Choice | Notes |
 |---|---|---|
 | WhatsApp | **Baileys** (`@whiskeysockets/baileys` 6.7+) on Node 20 | QR pairing at `/pair`, multi-device, self-chat supported |
-| Voice (inbound) | **ElevenLabs Conversational AI** | German voice agent answers, transcript + summary POSTed to `/webhook/voicecall` on hang-up. Native phone number (Twilio under the hood). |
+| Voice (inbound) | **ElevenLabs Conversational AI** | German voice agent answers, transcript + summary POSTed to `/webhook/voicecall` on hang-up. Demoed via in-browser WebRTC widget on `/inbox/demo/` (no phone number needed); also supports BYO Twilio number for real PSTN inbound. The `caller_phone` is supplied as a conversation dynamic-variable for tenant matching. |
 | Email | Stubbed | inbound via REST seed, not a live provider |
 
 ### Infrastructure
@@ -421,7 +421,9 @@ A reproducible 3-minute walkthrough that exercises every layer:
    - Propose mode: individual reply card. Click **"Senden"** on the drafted neighbour-mediation message.
 4. **Schornsteinfeger (Autonom)** — click row.
    - Green "Autonom erledigt" banner. Conversation thread shows the outbound message the agent already sent. Trace tab shows the autonomous reasoning.
-5. **Reset for next jury** — open the demo control page at [getfletcher.ai/inbox/demo/](https://getfletcher.ai/inbox/demo/) in a second tab and click "Zurücksetzen". The operator runs this tab on a second screen / laptop; the projector mirrors only the clean inbox.
+5. **Voice channel (browser call)** — open [getfletcher.ai/inbox/demo/](https://getfletcher.ai/inbox/demo/) in a second tab. Click the floating mic bubble in the bottom-right. Clara answers in German, the operator describes the issue, hangs up → a 📞 voicemail ticket arrives in the inbox within ~10s. The browser call simulates an inbound from Köhler (`+491793960546`) via a conversation dynamic-variable.
+
+6. **Reset for next jury** — same demo page, click "Zurücksetzen". The operator runs this tab on a second screen / laptop; the projector mirrors only the clean inbox.
 
 **Backup path if Graphiti misbehaves:** flip `USE_LIVE_GRAPHITI=false` in `.env`. L3 falls back to a pre-computed JSON cache (`scripts/kill_switch_cache.py`); the demo continues with identical UI.
 

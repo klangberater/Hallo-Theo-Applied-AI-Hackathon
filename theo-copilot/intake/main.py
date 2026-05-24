@@ -13,10 +13,12 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import hmac
+import json
 import logging
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from typing import Any
 
 from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -65,11 +67,15 @@ class EmailPayload(BaseModel):
 
 
 class VoiceCallPayload(BaseModel):
-    """Post-call payload from ElevenLabs Conversational AI.
+    """Flat post-call payload — what handle_inbound() needs.
 
-    We accept ElevenLabs' native field names where convenient and a few
-    short aliases. The tenant lookup only needs `from_phone` + a body;
-    everything else is metadata.
+    Two ways to arrive here:
+      (a) Real ElevenLabs post-call webhook — the nested envelope is
+          normalised into this flat shape by _normalize_voicecall_payload.
+      (b) Direct curl smoke test — caller posts this shape verbatim.
+
+    Tenant lookup only needs `from_phone` + a body; everything else is
+    metadata.
     """
     from_phone: str = Field(alias="from", description="Caller E.164 phone")
     transcript: str = Field(default="", description="Full call transcript")
@@ -80,6 +86,76 @@ class VoiceCallPayload(BaseModel):
 
     class Config:
         populate_by_name = True
+
+
+def _normalize_voicecall_payload(raw: dict[str, Any]) -> dict[str, Any]:
+    """Translate the ElevenLabs post-call envelope into our flat shape.
+
+    The real ElevenLabs post-call webhook looks like:
+      {
+        "type": "post_call_transcription",
+        "event_timestamp": ...,
+        "data": {
+          "agent_id": ..., "conversation_id": ...,
+          "transcript": [{"role": "agent"/"user", "message": ..., ...}, ...],
+          "metadata": {"call_duration_secs": ..., "start_time_unix_secs": ...},
+          "analysis": {"transcript_summary": ..., "call_successful": ...},
+          "conversation_initiation_client_data": {
+            "dynamic_variables": {"caller_phone": "+49..."}
+          }
+        }
+      }
+
+    For browser-based web calls (the demo flow) there is no real caller-ID,
+    so the page passes `caller_phone` as a dynamic variable when starting
+    the conversation and we lift it out here.
+
+    For curl smoke tests the payload is already flat — pass through.
+    """
+    if raw.get("type") == "post_call_transcription" or (
+        isinstance(raw.get("data"), dict) and "conversation_id" in raw["data"]
+    ):
+        d = raw.get("data", {}) or {}
+        analysis = d.get("analysis") or {}
+        metadata = d.get("metadata") or {}
+        cic = d.get("conversation_initiation_client_data") or {}
+        dyn = cic.get("dynamic_variables") or {}
+
+        turns = d.get("transcript") or []
+        # User-only transcript is the right "body" for tenant intake — the
+        # agent's prompts are scaffolding, not content. Fall back to the
+        # full back-and-forth if the user said nothing intelligible.
+        user_only = "\n".join(
+            (t.get("message") or "").strip()
+            for t in turns
+            if (t.get("role") or "").lower() == "user" and (t.get("message") or "").strip()
+        )
+        full = "\n".join(
+            f"{(t.get('role') or '?').upper()}: {(t.get('message') or '').strip()}"
+            for t in turns
+            if (t.get("message") or "").strip()
+        )
+
+        start_secs = metadata.get("start_time_unix_secs")
+        call_started_at = (
+            datetime.fromtimestamp(start_secs, tz=timezone.utc).isoformat()
+            if isinstance(start_secs, (int, float)) and start_secs > 0 else None
+        )
+
+        return {
+            "from": dyn.get("caller_phone") or dyn.get("from_phone") or "",
+            "transcript": user_only or full,
+            "summary": analysis.get("transcript_summary"),
+            "duration_seconds": (
+                int(metadata.get("call_duration_secs"))
+                if isinstance(metadata.get("call_duration_secs"), (int, float))
+                else None
+            ),
+            "call_started_at": call_started_at,
+            "conversation_id": d.get("conversation_id"),
+        }
+
+    return raw  # already flat (e.g. curl smoke test)
 
 
 # ---------------------------------------------------------------------------
@@ -214,9 +290,28 @@ async def webhook_voicecall(
     _verify_elevenlabs_signature(raw_body, elevenlabs_signature)
 
     try:
-        payload = VoiceCallPayload.model_validate_json(raw_body)
+        raw_dict = json.loads(raw_body.decode("utf-8"))
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=422, detail=f"invalid JSON: {e}") from e
+
+    # Translate ElevenLabs' nested post-call envelope into our flat shape.
+    # Curl smoke tests sending the flat shape directly pass through unchanged.
+    flat = _normalize_voicecall_payload(raw_dict)
+
+    try:
+        payload = VoiceCallPayload.model_validate(flat)
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=422, detail=f"invalid payload: {e}") from e
+
+    if not payload.from_phone.strip():
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "missing caller_phone — the web widget must pass it as a "
+                "dynamic variable, or a real telephony provider must "
+                "supply the caller's E.164 number."
+            ),
+        )
 
     # Prefer the LLM-generated summary — it's cleaner for downstream
     # classification + enrichment than a raw transcript with ums/ahs. Fall

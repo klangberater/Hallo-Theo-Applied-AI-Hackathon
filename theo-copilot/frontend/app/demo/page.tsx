@@ -18,8 +18,31 @@
  */
 import { useState } from 'react';
 import Link from 'next/link';
+import Script from 'next/script';
 import { api } from '@/lib/api';
-import { ArrowLeft, Mail, MessageSquare, RotateCcw, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Mail, MessageSquare, Phone, RotateCcw, AlertTriangle } from 'lucide-react';
+
+// ElevenLabs Conversational AI agent + the demo persona's seeded phone.
+// Hardcoded for hackathon speed; move to NEXT_PUBLIC_* envs later.
+const ELEVENLABS_AGENT_ID = 'agent_5501ksckr2ppejj8ah5n354qq0n5';
+const DEMO_CALLER_PHONE = '+491793960546';  // Köhler's seeded phone
+
+// React doesn't know about ElevenLabs' custom element — declare it loosely
+// so TS doesn't complain about the attributes.
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace JSX {
+    interface IntrinsicElements {
+      'elevenlabs-convai': React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & {
+          'agent-id'?: string;
+          'dynamic-variables'?: string;
+        },
+        HTMLElement
+      >;
+    }
+  }
+}
 
 type Action = 'koehler' | 'demir' | 'reset';
 
@@ -78,7 +101,7 @@ export default function DemoPage() {
         </p>
 
         {/* Primary path: real WhatsApp */}
-        <section className="mb-8 rounded-lg border border-teal-200 bg-teal-50 p-5">
+        <section className="mb-6 rounded-lg border border-teal-200 bg-teal-50 p-5">
           <div className="flex items-start gap-3">
             <div className="rounded-md bg-teal-600 p-2 text-white">
               <MessageSquare size={18} />
@@ -97,6 +120,32 @@ export default function DemoPage() {
 Das ist jetzt das sechste Mal mit demselben Heizkörper.
 Für Donnerstag und Freitag ist Frost angekündigt.`}
               </pre>
+            </div>
+          </div>
+        </section>
+
+        {/* Voice — browser-based ElevenLabs call (no phone number needed) */}
+        <section className="mb-8 rounded-lg border border-teal-200 bg-teal-50 p-5">
+          <div className="flex items-start gap-3">
+            <div className="rounded-md bg-teal-600 p-2 text-white">
+              <Phone size={18} />
+            </div>
+            <div className="flex-1">
+              <h2 className="mb-1 font-semibold text-paper-900">
+                Köhler — Anruf im Browser
+              </h2>
+              <p className="text-sm text-paper-700">
+                Klicken Sie auf das schwebende Mikrofon-Symbol unten rechts
+                auf dieser Seite, um Fletcher direkt im Browser anzurufen.
+                Clara (deutsche Stimme) nimmt den Anruf entgegen, lässt
+                Sie Ihr Anliegen schildern und beendet das Gespräch. Sobald
+                Sie auflegen, erscheint ein Voicemail-Ticket im Posteingang.
+              </p>
+              <div className="mt-3 rounded-md border border-teal-200 bg-white px-3 py-2 text-xs text-paper-700">
+                <span className="font-semibold">Anrufer-Identität:</span>{' '}
+                <span className="font-mono">Margarethe Köhler · {DEMO_CALLER_PHONE}</span>
+                <span className="text-paper-500"> (per dynamic-variable an Fletcher übermittelt)</span>
+              </div>
             </div>
           </div>
         </section>
@@ -183,6 +232,20 @@ Für Donnerstag und Freitag ist Frost angekündigt.`}
           )}
         </section>
       </main>
+
+      {/* ElevenLabs Conversational AI widget. Loads the custom element + the
+          floating mic bubble in the bottom-right of every page render. The
+          dynamic-variable `caller_phone` flows back to Fletcher via the
+          post-call webhook so the tenant lookup matches Köhler. */}
+      <Script
+        src="https://unpkg.com/@elevenlabs/convai-widget-embed"
+        strategy="afterInteractive"
+        type="text/javascript"
+      />
+      <elevenlabs-convai
+        agent-id={ELEVENLABS_AGENT_ID}
+        dynamic-variables={JSON.stringify({ caller_phone: DEMO_CALLER_PHONE })}
+      />
     </div>
   );
 }
