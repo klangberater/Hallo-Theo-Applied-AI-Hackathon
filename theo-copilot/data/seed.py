@@ -79,7 +79,11 @@ UNITS = [
 
 TENANTS = [
     {"id": "koehler", "name": "Margarethe Köhler",
-     "email": "margarethe.koehler1957@web.de", "phone": "+4930615 23 81",
+     # Phone deliberately set to the paired demo WhatsApp number so a
+     # self-chat from the operator plays the role of Köhler. Update both
+     # this and WHATSAPP_ALLOWED_NUMBERS in /opt/fletcher/.env if the
+     # paired device changes.
+     "email": "margarethe.koehler1957@web.de", "phone": "+491793960546",
      "metadata": {
          "age": 68, "since": "1997-04-01", "vulnerability": "post-OP",
          "daughter_lawyer": "Anja Köhler (Charlottenburg)",
