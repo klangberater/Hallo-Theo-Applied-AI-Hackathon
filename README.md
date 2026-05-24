@@ -417,7 +417,7 @@ A reproducible 3-minute walkthrough that exercises every layer:
    - Propose mode: individual reply card. Click **"Senden"** on the drafted neighbour-mediation message.
 4. **Schornsteinfeger (Autonom)** — click row.
    - Green "Autonom erledigt" banner. Conversation thread shows the outbound message the agent already sent. Trace tab shows the autonomous reasoning.
-5. **Reset for next jury** — `POST /api/demo/reset` (or the "Demo-Steuerung" expander).
+5. **Reset for next jury** — open the demo control page at [getfletcher.ai/inbox/demo/](https://getfletcher.ai/inbox/demo/) in a second tab and click "Zurücksetzen". The operator runs this tab on a second screen / laptop; the projector mirrors only the clean inbox.
 
 **Backup path if Graphiti misbehaves:** flip `USE_LIVE_GRAPHITI=false` in `.env`. L3 falls back to a pre-computed JSON cache (`scripts/kill_switch_cache.py`); the demo continues with identical UI.
 

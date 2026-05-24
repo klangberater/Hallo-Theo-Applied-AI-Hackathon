@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { api, cx, type Ticket, type TicketDetail } from '@/lib/api';
 import { InboxList } from '@/components/inbox-list';
 import { TicketView } from '@/components/ticket-view';
 import { EnrichmentCards } from '@/components/enrichment-cards';
-import { DemoControls } from '@/components/demo-controls';
-import { RefreshCw, Search } from 'lucide-react';
+import { ExternalLink, RefreshCw, Search } from 'lucide-react';
 
 type View = 'inbox' | 'archive';
 
@@ -82,16 +82,24 @@ export default function Page() {
           <h1 className="font-serif text-xl italic font-medium text-teal-700">Fletcher</h1>
           <span className="text-sm font-medium text-paper-500">· Sarah Weber</span>
         </div>
-        <button
-          onClick={refresh}
-          className="flex items-center gap-2 rounded-md border border-paper-300 bg-white px-3 py-1.5 text-sm font-medium text-paper-900 hover:bg-paper-50 transition"
-        >
-          <RefreshCw size={14} /> Aktualisieren
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/demo"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 rounded-md border border-paper-300 bg-white px-3 py-1.5 text-sm font-medium text-paper-600 hover:bg-paper-50 transition"
+            title="Demo-Steuerung in neuem Tab öffnen"
+          >
+            Demo <ExternalLink size={12} />
+          </Link>
+          <button
+            onClick={refresh}
+            className="flex items-center gap-2 rounded-md border border-paper-300 bg-white px-3 py-1.5 text-sm font-medium text-paper-900 hover:bg-paper-50 transition"
+          >
+            <RefreshCw size={14} /> Aktualisieren
+          </button>
+        </div>
       </header>
-
-      {/* Demo controls (collapsible) */}
-      <DemoControls onAfter={refresh} />
 
       {/* Inbox / Archiv tabs */}
       <div className="flex items-center border-b border-paper-200 bg-white px-6">

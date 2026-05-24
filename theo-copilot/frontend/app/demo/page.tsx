@@ -1,0 +1,171 @@
+'use client';
+
+/**
+ * Demo control panel — standalone page.
+ *
+ * Lives at /inbox/demo/ so it can be opened in a second browser tab (or on a
+ * second laptop) while the main inbox is mirrored to the projector. The jury
+ * sees a clean inbox; the operator clicks Demo buttons here without anyone
+ * noticing.
+ */
+import { useState } from 'react';
+import Link from 'next/link';
+import { api } from '@/lib/api';
+import { ArrowLeft, MessageSquare, Mail, RotateCcw } from 'lucide-react';
+
+type Action = 'koehler' | 'demir' | 'reset';
+
+interface LogEntry {
+  ts: string;
+  action: Action;
+  result: string;
+  ok: boolean;
+}
+
+export default function DemoPage() {
+  const [busy, setBusy] = useState<Action | null>(null);
+  const [log, setLog] = useState<LogEntry[]>([]);
+
+  const fire = async (which: Action) => {
+    setBusy(which);
+    const ts = new Date().toLocaleTimeString('de-DE');
+    try {
+      const fn = which === 'koehler' ? api.fireKoehler
+               : which === 'demir'   ? api.fireDemir
+               :                       api.resetDemo;
+      const res: any = await fn();
+      const result = res?.ticket_id || res?.status || 'ok';
+      setLog((prev) => [{ ts, action: which, result, ok: true }, ...prev].slice(0, 10));
+    } catch (e: any) {
+      setLog((prev) => [{ ts, action: which, result: e.message, ok: false }, ...prev].slice(0, 10));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-paper-50">
+      {/* Header */}
+      <header className="border-b border-paper-200 bg-white px-8 py-4">
+        <div className="mx-auto flex max-w-3xl items-center justify-between">
+          <div className="flex items-baseline gap-3">
+            <h1 className="font-serif text-xl italic font-medium text-teal-700">Fletcher</h1>
+            <span className="text-sm font-medium text-paper-500">· Demo-Steuerung</span>
+          </div>
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-sm font-medium text-paper-600 hover:text-teal-700"
+          >
+            <ArrowLeft size={14} /> Zurück zum Posteingang
+          </Link>
+        </div>
+      </header>
+
+      {/* Body */}
+      <main className="mx-auto max-w-3xl px-8 py-8">
+        <p className="mb-6 text-sm text-paper-600">
+          Diese Seite ist für den Pitch gedacht: in einem zweiten Browser-Tab
+          öffnen, sodass der Jury im Haupttab nur der Posteingang gezeigt
+          wird. Aktionen wirken sich sofort auf den Posteingang aus — dort
+          „Aktualisieren" klicken oder auf das neue Ticket warten.
+        </p>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <ActionCard
+            icon={<MessageSquare size={20} />}
+            title="Köhler — Heizung"
+            description="WhatsApp-Eingang simulieren (Fallback, wenn die echte WhatsApp-Brücke nicht antwortet)."
+            buttonLabel={busy === 'koehler' ? 'Sende…' : 'Köhler simulieren'}
+            onClick={() => fire('koehler')}
+            disabled={busy !== null}
+            variant="outline"
+          />
+          <ActionCard
+            icon={<Mail size={20} />}
+            title="Demir — NK-Beanstandung"
+            description="Formelle E-Mail von y.demir@gmx.de auslösen."
+            buttonLabel={busy === 'demir' ? 'Sende…' : 'Demir abfeuern'}
+            onClick={() => fire('demir')}
+            disabled={busy !== null}
+            variant="primary"
+          />
+          <ActionCard
+            icon={<RotateCcw size={20} />}
+            title="Zurücksetzen"
+            description="Datenbank wipen + Seed neu laden (inkl. Schornsteinfeger)."
+            buttonLabel={busy === 'reset' ? 'Setze zurück…' : 'Zurücksetzen'}
+            onClick={() => fire('reset')}
+            disabled={busy !== null}
+            variant="outline"
+          />
+        </div>
+
+        {/* Log */}
+        <section className="mt-10">
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-paper-500">
+            Letzte Aktionen
+          </h2>
+          {log.length === 0 ? (
+            <p className="rounded-md border border-dashed border-paper-300 bg-white px-4 py-6 text-center text-sm italic text-paper-400">
+              Noch nichts ausgelöst.
+            </p>
+          ) : (
+            <ul className="divide-y divide-paper-200 rounded-md border border-paper-200 bg-white">
+              {log.map((e, i) => (
+                <li
+                  key={i}
+                  className="flex items-center justify-between gap-4 px-4 py-2 text-sm"
+                >
+                  <span className="font-mono text-xs text-paper-500">{e.ts}</span>
+                  <span className="font-medium text-paper-700">{e.action}</span>
+                  <span
+                    className={
+                      e.ok
+                        ? 'font-mono text-xs text-teal-700'
+                        : 'font-mono text-xs text-red-700'
+                    }
+                  >
+                    {e.result}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function ActionCard({
+  icon, title, description, buttonLabel, onClick, disabled, variant,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  buttonLabel: string;
+  onClick: () => void;
+  disabled: boolean;
+  variant: 'primary' | 'outline';
+}) {
+  return (
+    <div className="flex flex-col rounded-lg border border-paper-200 bg-white p-4">
+      <div className="mb-2 flex items-center gap-2 text-teal-700">
+        {icon}
+        <h3 className="text-sm font-semibold text-paper-900">{title}</h3>
+      </div>
+      <p className="mb-4 flex-1 text-xs text-paper-500">{description}</p>
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={
+          variant === 'primary'
+            ? 'w-full rounded-md bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50'
+            : 'w-full rounded-md border border-paper-300 bg-white px-3 py-2 text-sm font-medium hover:bg-paper-50 disabled:opacity-50'
+        }
+      >
+        {buttonLabel}
+      </button>
+    </div>
+  );
+}
