@@ -127,7 +127,7 @@ function AutonomousDone({
         <p className="font-semibold text-sm text-green-700 mb-1 flex items-center gap-2">
           <CheckCircle2 size={16} /> Autonom erledigt
         </p>
-        <p className="text-sm text-paper-700">{rationale || 'Theo hat dieses Ticket eigenständig bearbeitet.'}</p>
+        <p className="text-sm text-paper-700">{rationale || 'Fletcher hat dieses Ticket eigenständig bearbeitet.'}</p>
       </div>
 
       <h3 className="text-xs font-semibold uppercase tracking-wider text-paper-500 mb-3">
@@ -156,7 +156,7 @@ function AutonomousDone({
         className="mt-4 flex items-center gap-2 text-sm font-medium text-paper-700 hover:text-paper-900"
       >
         {showSteps ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        Wie Theo vorgegangen ist
+        Wie Fletcher vorgegangen ist
       </button>
       {showSteps && humanSteps && (
         <ol className="mt-3 rounded-lg border border-paper-200 bg-white p-4 space-y-2 list-decimal list-inside">

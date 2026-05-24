@@ -69,7 +69,7 @@ export function EnrichmentCards({ ticket }: { ticket: TicketDetail }) {
   if (!e) {
     return (
       <div className="rounded-md border border-paper-200 bg-white px-5 py-4 text-sm text-paper-500">
-        {ticket.status === 'enriching' ? 'Theo Copilot reichert das Ticket an…' : 'Keine Anreicherungsdaten.'}
+        {ticket.status === 'enriching' ? 'Fletcher Copilot reichert das Ticket an…' : 'Keine Anreicherungsdaten.'}
       </div>
     );
   }
