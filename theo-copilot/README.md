@@ -99,6 +99,7 @@ Copy `.env.example` → `/opt/fletcher/.env` on the server (or `.env` locally) a
 | `GRAPHITI_LLM_MODEL` | graphiti_client | default: `meta-llama/Llama-3.3-70B-Instruct-Turbo` |
 | `GRAPHITI_EMBED_MODEL` | graphiti_client | default: `intfloat/multilingual-e5-large-instruct` |
 | `USE_LIVE_GRAPHITI` | l3_memory tool | `false` flips to kill-switch cache |
+| `WHATSAPP_BRIDGE_URL` | intake_service | where to POST outbound (default `http://127.0.0.1:8003`) |
 
 ---
 

@@ -4,22 +4,28 @@ handle_inbound() is called by the FastAPI webhook with a normalized
 IncomingMessage. It:
   1. Looks up the tenant by phone
   2. Resolves their unit (via active lease)
-  3. Creates a ticket row
+  3. Finds or creates the channel thread
   4. Stores the incoming channel message
   5. Runs intent classification (Sonnet) to set priority + intent
-  6. Optionally writes a Graphiti episode (if Graphiti is healthy)
-  7. Schedules the enrichment loop in the background
+  5b. Sends an immediate 2-sentence acknowledgement (Sonnet) —
+      DB-only for email, DB + Baileys bridge for whatsapp
+  6. Creates the ticket row
+  7. Optionally writes a Graphiti episode (if Graphiti is healthy)
 
 See: PRODUCT_SPEC §3.1 Phase A + §7
 """
 from __future__ import annotations
 
 import logging
+import os
 import secrets
 from datetime import datetime, timezone
 from typing import Any
 
+import httpx
+
 from infra.db import connect
+from intake.acknowledgement import generate_acknowledgement
 from intake.intent_classifier import classify_intent
 
 log = logging.getLogger(__name__)
@@ -34,6 +40,31 @@ _URGENCY_TO_PRIORITY = {
     "urgent": "Wichtig",
     "standard": "Standard",
 }
+
+
+WHATSAPP_BRIDGE_URL = os.environ.get(
+    "WHATSAPP_BRIDGE_URL", "http://127.0.0.1:8003",
+)
+ACK_SENDER = "hallo theo"
+
+
+async def _send_whatsapp_via_bridge(to_phone: str, body: str) -> None:
+    """Fire-and-forget POST to the Baileys bridge. Never raises.
+
+    Bridge unreachable / not paired → log + move on. The DB row is the
+    source of truth for the inbox UI; the WhatsApp send is best-effort.
+    """
+    url = f"{WHATSAPP_BRIDGE_URL.rstrip('/')}/send"
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as http:
+            r = await http.post(url, json={"to": to_phone, "body": body})
+        if r.status_code >= 400:
+            log.warning(
+                "whatsapp bridge rejected ack: status=%s body=%s",
+                r.status_code, r.text[:200],
+            )
+    except Exception as e:  # noqa: BLE001
+        log.warning("whatsapp bridge unreachable for ack: %s", e)
 
 
 async def handle_inbound(
@@ -115,6 +146,33 @@ async def handle_inbound(
                          "confidence": 0.0, "reasoning": f"fallback (error: {e})"}
 
     priority = _URGENCY_TO_PRIORITY.get(intent_result["urgency"], "Standard")
+
+    # --- 5b. Immediate acknowledgement reply.
+    #         We always reply within ~1–2s so the tenant knows we heard them,
+    #         long before the enrichment agent finishes. The outbound row goes
+    #         into the same thread; for whatsapp we also POST to the Baileys
+    #         bridge. Bridge failures are logged, not raised — the inbox UI
+    #         stays consistent either way.
+    try:
+        ack_body = generate_acknowledgement(
+            body, intent=intent_result.get("intent"), tenant_name=tenant["name"],
+        )
+        ack_sent_at = datetime.now(timezone.utc)
+        ack_msg_id = _new_id("cm")
+        async with connect() as conn:
+            await conn.execute(
+                "INSERT INTO theo.channel_messages (id, thread_id, direction, "
+                "sender, body, sent_at) VALUES ($1, $2, 'outbound', $3, $4, $5)",
+                ack_msg_id, thread_id, ACK_SENDER, ack_body, ack_sent_at,
+            )
+            await conn.execute(
+                "UPDATE theo.channel_threads SET last_message_at = $1 WHERE id = $2",
+                ack_sent_at, thread_id,
+            )
+        if channel == "whatsapp" and from_phone:
+            await _send_whatsapp_via_bridge(from_phone, ack_body)
+    except Exception as e:  # noqa: BLE001
+        log.warning("acknowledgement send failed: %s", e)
 
     # --- 6. Create the ticket
     ticket_id = _new_id("TK")

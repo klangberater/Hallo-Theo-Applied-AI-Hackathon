@@ -29,6 +29,8 @@ The differentiator is a **temporal knowledge graph** (Graphiti + Neo4j) sitting 
 
 ## What it does
 
+Within ~1–2 seconds of any inbound WhatsApp/email, the tenant gets an automatic German acknowledgement that references the topic of their message ("Vielen Dank für Ihre Nachricht. Es tut uns leid zu hören, dass Ihre Heizung wieder kalt ist — wir kümmern uns umgehend darum."). The full enrichment + agent response follows shortly after.
+
 A property manager opens Fletcher and sees a single prioritised inbox of tenant tickets. For each ticket, Fletcher has already:
 
 - **Classified intent + urgency** (DRINGEND / Wichtig / Standard) via Claude Sonnet
@@ -60,6 +62,7 @@ The manager either reviews and clicks "Aktionen umsetzen", or for low-risk routi
 │  FastAPI Intake (theo-copilot/intake/)                 │
 │  • /webhook/whatsapp  → tenant lookup → ticket row     │
 │  • Intent classifier (Claude Sonnet 4)                 │
+│  • Immediate ack reply (Sonnet) → bridge /send         │
 │  • Schedules background enrichment                     │
 └────────────────────────┬───────────────────────────────┘
                          ▼
@@ -209,6 +212,8 @@ GRAPHITI_EMBED_MODEL=intfloat/multilingual-e5-large-instruct
 GRAPHITI_EMBED_DIM=1024
 
 USE_LIVE_GRAPHITI=true                     # set false to use kill-switch cache
+
+WHATSAPP_BRIDGE_URL=http://127.0.0.1:8003  # where intake POSTs outbound msgs
 ```
 
 ---
