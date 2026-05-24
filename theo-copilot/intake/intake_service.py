@@ -194,8 +194,46 @@ async def handle_inbound(
         )
 
     # --- 5. Intent classification (Sonnet) — outside the txn, it's a network call.
+    #         Build a compact caller-context block from tenant metadata + recent
+    #         ticket history. Same "Heizung kaputt" warrants emergency from a
+    #         68-year-old post-OP tenant with 5 prior heating cases, and Standard
+    #         from a healthy first-time tenant. The caller doesn't have to
+    #         repeat what we already know.
+    import json as _json
+    metadata = tenant.get("metadata") or {}
+    if isinstance(metadata, str):
+        try:
+            metadata = _json.loads(metadata) or {}
+        except Exception:  # noqa: BLE001
+            metadata = {}
+    caller_context: dict[str, Any] = {
+        "name": tenant.get("name"),
+        "age": metadata.get("age"),
+        "since": metadata.get("since"),
+        "vulnerability": metadata.get("vulnerability"),
+    }
+    # Prior incident count for this unit in the last 18 months — any intent,
+    # any status. Lets the classifier weight "repeat pattern" without knowing
+    # the current intent yet.
     try:
-        intent_result = classify_intent(body)
+        async with connect() as conn:
+            prior_count = await conn.fetchval(
+                "SELECT COUNT(*)::int FROM theo.tickets "
+                "WHERE unit_id = $1 "
+                "AND opened_at > now() - interval '18 months'",
+                unit_id,
+            )
+        if prior_count and prior_count > 0:
+            caller_context["prior_incidents"] = {
+                "count": prior_count,
+                "timespan_months": 18,
+                "intent": "Tickets insgesamt",
+            }
+    except Exception as e:  # noqa: BLE001
+        log.warning("prior-incident lookup failed: %s", e)
+
+    try:
+        intent_result = classify_intent(body, caller_context=caller_context)
     except Exception as e:  # noqa: BLE001
         log.warning("intent classification failed: %s", e)
         intent_result = {"intent": "other", "urgency": "standard",
