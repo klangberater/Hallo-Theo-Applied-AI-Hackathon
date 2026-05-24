@@ -48,9 +48,12 @@ if not API_KEY:
 
 AGENT_NAME = os.environ.get("FLETCHER_AGENT_NAME", "Fletcher Voicemail Intake")
 AGENT_ID = os.environ.get("FLETCHER_AGENT_ID", "").strip() or None
-# Default voice: "Hope" (multilingual, warm female). Override for a German
-# native voice if you have a preferred one in your workspace.
-VOICE_ID = os.environ.get("FLETCHER_VOICE_ID", "OYTbf65OHHFELVut7v2H")
+# Default voice: "Sarah" — one of the stock voices that ships in every
+# workspace ("Mature, Reassuring, Confident, professional"). Paired with
+# eleven_flash_v2_5 she speaks German fluently with a mild non-native
+# accent. Override via FLETCHER_VOICE_ID if you have a German-native
+# voice in your workspace.
+VOICE_ID = os.environ.get("FLETCHER_VOICE_ID", "EXAVITQu4vr4xnSDxMaL")
 WEBHOOK_URL = os.environ.get(
     "FLETCHER_WEBHOOK_URL", "https://getfletcher.ai/api/webhook/voicecall",
 )
