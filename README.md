@@ -29,7 +29,7 @@ The differentiator is a **temporal knowledge graph** (Graphiti + Neo4j) sitting 
 
 ## What it does
 
-Within ~1–2 seconds of any inbound WhatsApp/email, the tenant gets an automatic German acknowledgement that references the topic of their message ("Vielen Dank für Ihre Nachricht. Es tut uns leid zu hören, dass Ihre Heizung wieder kalt ist — wir kümmern uns umgehend darum."). The full enrichment + agent response follows shortly after.
+Within ~1–2 seconds of any inbound WhatsApp/email, the tenant gets an automatic German acknowledgement that references the topic of their message ("Vielen Dank für Ihre Nachricht. Es tut uns leid zu hören, dass Ihre Heizung wieder kalt ist — ein Kollege prüft das Anliegen und meldet sich bei Ihnen."). The ack deliberately makes **no concrete time promises** — the real reply can take hours when a human is in the approval loop (propose / bundle_approve modes). For `emergency` urgency the ack escalates the language ("schnellstmöglich"), otherwise it just confirms receipt + that a person will get back to them.
 
 A property manager opens Fletcher and sees a single prioritised inbox of tenant tickets. For each ticket, Fletcher has already:
 

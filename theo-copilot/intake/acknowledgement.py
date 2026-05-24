@@ -48,52 +48,81 @@ def _get_client() -> Anthropic:
 
 SYSTEM_PROMPT = """Du schreibst die automatische Eingangsbestätigung einer deutschen Hausverwaltung (hallo theo) an einen Mieter, der gerade per WhatsApp/E-Mail eine Nachricht geschickt hat.
 
+WICHTIG: Diese Nachricht ist nur eine Bestätigung des Eingangs. Die eigentliche
+Bearbeitung erfolgt durch einen Mitarbeiter und kann je nach Anliegen mehrere
+Stunden oder Tage dauern. Mach KEINE konkreten Zeitversprechen.
+
 Regeln:
 - Genau 2 kurze Sätze, höflich, warm, in Sie-Form.
 - Satz 1: Bedankt sich für die Nachricht (kurz, nicht floskelhaft).
-- Satz 2: Bezieht sich konkret und empathisch auf das Thema der Nachricht
-  (z.B. "Es tut uns leid zu hören, dass Ihre Heizung wieder kalt ist —
-  wir kümmern uns umgehend darum.").
-- Keine Versprechen zu Fristen oder Lösungen. Keine Vermutungen über Schuld.
+- Satz 2: Bezieht sich konkret und empathisch auf das Thema und sagt, dass
+  ein Mitarbeiter sich der Sache annimmt und sich zurückmeldet.
+  Beispiel: "Es tut uns leid zu hören, dass Ihre Heizung wieder kalt ist —
+  ein Kollege prüft das Anliegen und meldet sich bei Ihnen."
+- VERBOTEN: konkrete Zeitangaben oder Eile-Versprechen wie "sofort",
+  "umgehend", "in Kürze", "heute noch", "innerhalb von X Stunden",
+  "morgen". Diese Worte dürfen NICHT vorkommen.
+- ERLAUBT: nur bei urgency=emergency das Wort "schnellstmöglich".
+- Keine Vermutungen über Schuld. Keine Versprechen zu Lösungen.
 - Keine Signatur, keine Anrede mit Namen am Anfang — die Nachricht beginnt
   direkt mit dem ersten Satz.
 - Nur den fertigen Antworttext zurückgeben, keine Erklärung, kein Markdown.
 """
 
 
-_FALLBACK_BY_INTENT = {
+# Fallback templates — used if the LLM call fails. Phrased to be honest
+# about turnaround: no time promises, just "a colleague will get back to
+# you". Only the emergency variant uses "schnellstmöglich".
+_FALLBACK_STANDARD = {
     "heating": (
         "Vielen Dank für Ihre Nachricht. Es tut uns leid zu hören, dass Sie "
-        "Probleme mit der Heizung haben — wir kümmern uns umgehend darum."
+        "Probleme mit der Heizung haben — ein Kollege prüft das Anliegen "
+        "und meldet sich bei Ihnen."
     ),
     "noise": (
         "Vielen Dank für Ihre Nachricht. Wir nehmen Lärmbeschwerden sehr "
-        "ernst und melden uns schnellstmöglich bei Ihnen zurück."
+        "ernst — ein Kollege sieht sich Ihr Anliegen an und meldet sich "
+        "bei Ihnen zurück."
     ),
     "nka_dispute": (
         "Vielen Dank für Ihre Rückmeldung zur Nebenkostenabrechnung. "
-        "Wir prüfen Ihren Hinweis und melden uns zeitnah."
+        "Ein Kollege prüft Ihren Hinweis und meldet sich bei Ihnen."
     ),
     "payment": (
-        "Vielen Dank für Ihre Nachricht. Wir prüfen den Vorgang und "
-        "melden uns in Kürze bei Ihnen."
+        "Vielen Dank für Ihre Nachricht. Ein Kollege prüft den Vorgang "
+        "und meldet sich bei Ihnen zurück."
     ),
     "other": (
-        "Vielen Dank für Ihre Nachricht. Wir haben Ihr Anliegen erhalten "
-        "und melden uns schnellstmöglich bei Ihnen."
+        "Vielen Dank für Ihre Nachricht. Ein Kollege sieht sich Ihr "
+        "Anliegen an und meldet sich bei Ihnen."
     ),
 }
 
+_FALLBACK_EMERGENCY = (
+    "Vielen Dank für Ihre Nachricht. Wir behandeln Ihr Anliegen mit "
+    "höchster Priorität und melden uns schnellstmöglich bei Ihnen."
+)
+
 
 def generate_acknowledgement(
-    body: str, intent: str | None = None, tenant_name: str | None = None,
+    body: str,
+    intent: str | None = None,
+    urgency: str | None = None,
+    tenant_name: str | None = None,
 ) -> str:
     """Generate a warm 2-sentence acknowledgement.
 
     Synchronous on purpose — it's a single short LLM call and we want it
     to land before we return from the webhook.
+
+    Critically: does NOT promise concrete timing. The real reply may take
+    hours when a human is in the approval loop (propose / bundle_approve
+    autonomy modes). The ack only confirms receipt + that a person will
+    get back to them.
     """
+    urgency_hint = (urgency or "standard").lower()
     user_msg = (
+        f"urgency={urgency_hint}\n\n"
         f"Eingehende Nachricht des Mieters:\n---\n{body.strip()}\n---\n\n"
         f"Schreibe jetzt die 2-Satz-Eingangsbestätigung."
     )
@@ -114,13 +143,20 @@ def generate_acknowledgement(
     except Exception as e:  # noqa: BLE001
         log.warning("acknowledgement LLM failed: %s — using fallback", e)
 
-    return _FALLBACK_BY_INTENT.get(intent or "other", _FALLBACK_BY_INTENT["other"])
+    if urgency_hint == "emergency":
+        return _FALLBACK_EMERGENCY
+    return _FALLBACK_STANDARD.get(intent or "other", _FALLBACK_STANDARD["other"])
 
 
 if __name__ == "__main__":
     # Smoke
+    print("--- standard heating ---")
     print(generate_acknowledgement(
-        "Die Heizung im Wohnzimmer ist seit gestern Abend wieder kalt. "
-        "Wettervorhersage soll Frost werden.",
-        intent="heating",
+        "Die Heizung im Wohnzimmer ist seit gestern Abend kalt.",
+        intent="heating", urgency="standard",
+    ))
+    print("\n--- emergency heating ---")
+    print(generate_acknowledgement(
+        "Heizung komplett ausgefallen, Frost angekündigt, Kleinkind im Haus.",
+        intent="heating", urgency="emergency",
     ))

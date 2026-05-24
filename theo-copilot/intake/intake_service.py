@@ -155,7 +155,10 @@ async def handle_inbound(
     #         stays consistent either way.
     try:
         ack_body = generate_acknowledgement(
-            body, intent=intent_result.get("intent"), tenant_name=tenant["name"],
+            body,
+            intent=intent_result.get("intent"),
+            urgency=intent_result.get("urgency"),
+            tenant_name=tenant["name"],
         )
         ack_sent_at = datetime.now(timezone.utc)
         ack_msg_id = _new_id("cm")
