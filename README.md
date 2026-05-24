@@ -227,8 +227,8 @@ The demo is auto-deployed on every push to `main` via a GitHub Actions self-host
 ```bash
 ssh root@87.106.213.53
 cd /opt/fletcher && git pull
-sudo systemctl restart fletcher-intake
-sudo systemctl restart fletcher-whatsapp
+sudo systemctl restart theo-intake
+sudo systemctl restart theo-whatsapp-bridge
 
 # Frontend rebuild
 cd theo-copilot/frontend && npm ci && npm run build
@@ -239,8 +239,8 @@ cd theo-copilot/frontend && npm ci && npm run build
 
 | systemd unit | Port | What |
 |---|---|---|
-| `fletcher-intake` | `127.0.0.1:8002` | FastAPI — webhooks + read API |
-| `fletcher-whatsapp` | `127.0.0.1:3001` | Baileys bridge + `/pair` UI |
+| `theo-intake.service` | `127.0.0.1:8002` | FastAPI — webhooks + read API |
+| `theo-whatsapp-bridge.service` | `127.0.0.1:8003` | Baileys bridge + `/pair` UI |
 | `theo-neo4j` (Docker) | `127.0.0.1:7687`, `7474` | Neo4j 5.26 |
 | `fletcher-db` (existing host Postgres) | `127.0.0.1:5433` | shared Postgres, `theo` schema isolated |
 

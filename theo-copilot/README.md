@@ -76,7 +76,7 @@ cd theo-copilot && python -m data.seed
 python -m scripts.ingest_graphiti
 
 # Restart services
-sudo systemctl restart fletcher-intake fletcher-whatsapp
+sudo systemctl restart theo-intake theo-whatsapp-bridge
 ```
 
 ## Quick start (local laptop)
