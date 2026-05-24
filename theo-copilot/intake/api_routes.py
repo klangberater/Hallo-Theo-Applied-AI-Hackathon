@@ -59,16 +59,18 @@ async def list_tickets(
             "        AND t.done_at >= now() - (INTERVAL '1 hour' * $1)) "
             "   OR t.enrichment->>'autonomy_mode' = 'autonomous_done' "
         )
+        # Priority wins — DRINGEND first regardless of state. Within a priority
+        # bucket, still-open tickets sit above already-done ones, and recency
+        # breaks remaining ties. This puts an emergency (Köhler) above a
+        # routine autonomous-done item (Schornsteinfeger).
         order = (
             "ORDER BY "
-            "  CASE WHEN t.done_at IS NULL THEN 0 ELSE 1 END, "
-            "  CASE WHEN t.enrichment->>'autonomy_mode' = 'autonomous_done' "
-            "       THEN 0 ELSE 1 END, "
             "  CASE t.priority "
             "    WHEN 'DRINGEND' THEN 0 "
             "    WHEN 'Wichtig'  THEN 1 "
             "    WHEN 'Hoch'     THEN 1 "
             "    ELSE 2 END, "
+            "  CASE WHEN t.done_at IS NULL THEN 0 ELSE 1 END, "
             "  t.opened_at DESC NULLS LAST"
         )
 
