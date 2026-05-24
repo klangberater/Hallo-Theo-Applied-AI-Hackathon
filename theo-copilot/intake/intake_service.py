@@ -10,15 +10,19 @@ IncomingMessage. It:
   5b. Sends an immediate 2-sentence acknowledgement (Sonnet) —
       DB-only for email, DB + Baileys bridge for whatsapp
   6. Creates the ticket row
-  7. Optionally writes a Graphiti episode (if Graphiti is healthy)
+  7. Schedules a Graphiti episode write as a detached background task
+     (never blocks the webhook — Graphiti has been observed taking
+     9+ minutes on Together-AI retry storms)
 
 See: PRODUCT_SPEC §3.1 Phase A + §7
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import secrets
+import time
 from datetime import datetime, timezone
 from typing import Any
 
@@ -29,6 +33,17 @@ from intake.acknowledgement import generate_acknowledgement
 from intake.intent_classifier import classify_intent
 
 log = logging.getLogger(__name__)
+
+# How long to allow a single Graphiti episode write to take before we cancel
+# it. Graphiti's add_episode runs Together-AI fact extraction + embeddings +
+# neo4j writes; we've seen it block for 9+ minutes when Together returns
+# malformed JSON and Graphiti retries. The webhook MUST NOT wait on it.
+GRAPHITI_WRITE_TIMEOUT_S = 90.0
+
+# Track in-flight tasks so they don't get garbage-collected. (asyncio holds
+# only weak refs to tasks; without a strong ref the task can be cancelled
+# mid-flight by the GC.)
+_BACKGROUND_TASKS: set[asyncio.Task] = set()
 
 
 def _new_id(prefix: str) -> str:
@@ -46,6 +61,47 @@ WHATSAPP_BRIDGE_URL = os.environ.get(
     "WHATSAPP_BRIDGE_URL", "http://127.0.0.1:8003",
 )
 ACK_SENDER = "hallo theo"
+
+
+async def _write_graphiti_episode_with_timeout(
+    *, ticket_id: str, body: str, tenant_id: str, unit_id: str,
+    sent_at: datetime,
+) -> None:
+    """Background task: write a Graphiti episode without blocking intake.
+
+    Graphiti's add_message_episode runs LLM extraction + embeddings + neo4j
+    writes and has been observed taking 9+ minutes when the Together AI
+    response is malformed and the SDK retries. The webhook can't wait on
+    that — we fire this as a detached task and time out hard at 90s. If
+    Graphiti is genuinely down we lose this one episode, which is fine:
+    the demo reads pre-ingested episodes anyway.
+    """
+    started = time.monotonic()
+    try:
+        from infra.graphiti_client import add_message_episode
+        await asyncio.wait_for(
+            add_message_episode(
+                name=f"intake-{ticket_id}",
+                body=body,
+                tenant_id=tenant_id,
+                unit_id=unit_id,
+                sent_at=sent_at,
+            ),
+            timeout=GRAPHITI_WRITE_TIMEOUT_S,
+        )
+        elapsed = time.monotonic() - started
+        log.info("graphiti episode written for %s in %.1fs", ticket_id, elapsed)
+    except asyncio.TimeoutError:
+        elapsed = time.monotonic() - started
+        log.warning(
+            "graphiti episode write timed out for %s after %.1fs", ticket_id, elapsed,
+        )
+    except Exception as e:  # noqa: BLE001
+        elapsed = time.monotonic() - started
+        log.warning(
+            "graphiti episode write failed for %s after %.1fs: %s",
+            ticket_id, elapsed, e,
+        )
 
 
 async def _send_whatsapp_via_bridge(to_phone: str, body: str) -> None:
@@ -189,18 +245,19 @@ async def handle_inbound(
             priority, sent_at, body, thread_id, intent_result["intent"],
         )
 
-    # --- 7. Optional Graphiti episode write (skip if Graphiti isn't reachable)
-    try:
-        from infra.graphiti_client import add_message_episode
-        await add_message_episode(
-            name=f"intake-{ticket_id}",
-            body=body,
-            tenant_id=tenant["id"],
-            unit_id=unit_id,
-            sent_at=sent_at,
-        )
-    except Exception as e:  # noqa: BLE001
-        log.warning("graphiti episode write skipped: %s", e)
+    # --- 7. Graphiti episode write — fire-and-forget.
+    #         Must NOT block the webhook response: Graphiti's add_episode
+    #         has been observed taking 9+ minutes on retry storms. Detach
+    #         it as a tracked background task with a hard timeout inside.
+    task = asyncio.create_task(
+        _write_graphiti_episode_with_timeout(
+            ticket_id=ticket_id, body=body,
+            tenant_id=tenant["id"], unit_id=unit_id, sent_at=sent_at,
+        ),
+        name=f"graphiti-episode-{ticket_id}",
+    )
+    _BACKGROUND_TASKS.add(task)
+    task.add_done_callback(_BACKGROUND_TASKS.discard)
 
     return {
         "status": "accepted",
