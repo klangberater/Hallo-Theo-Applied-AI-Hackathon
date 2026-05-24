@@ -313,10 +313,18 @@ async def webhook_voicecall(
             ),
         )
 
-    # Prefer the LLM-generated summary — it's cleaner for downstream
-    # classification + enrichment than a raw transcript with ums/ahs. Fall
-    # back to the transcript if no summary was sent.
-    body = (payload.summary or payload.transcript or "").strip()
+    # Prefer the raw user-only transcript over ElevenLabs' summary. The
+    # summary is heavily sanitised + often translated into English, which
+    # destroys emergency-detection cues ("frost angekündigt", "Hüft-OP",
+    # "schon wieder") that drive the urgency classifier. We append the
+    # summary as supplemental context so the enrichment agent still has
+    # the structured signal, but the verbatim user words come first.
+    parts: list[str] = []
+    if payload.transcript and payload.transcript.strip():
+        parts.append(payload.transcript.strip())
+    if payload.summary and payload.summary.strip():
+        parts.append(f"[Zusammenfassung des Anrufs]\n{payload.summary.strip()}")
+    body = "\n\n".join(parts).strip()
     if not body:
         raise HTTPException(status_code=422, detail="empty transcript and summary")
 
