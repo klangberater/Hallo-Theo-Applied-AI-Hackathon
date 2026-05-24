@@ -195,6 +195,11 @@ export function TicketView({
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
+    // Clear stale messages from the previously-selected ticket so we never
+    // show "wrong conversation under right header" during the ~200ms fetch
+    // window. The render falls back to ticket.full_text while messages is
+    // empty, which at least matches the ticket actually being shown.
+    setMessages([]);
     api.getThread(ticket.id).then(setMessages).catch(() => setMessages([]));
   }, [ticket.id]);
 
