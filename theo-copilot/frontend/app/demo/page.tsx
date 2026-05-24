@@ -16,11 +16,11 @@
  *      that injects the pre-canned formal email.
  *   3. Reset — wipes Postgres state + re-seeds between dry runs.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
 import { api } from '@/lib/api';
-import { ArrowLeft, Mail, MessageSquare, Phone, RotateCcw, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Mail, MessageSquare, Mic, MicOff, Phone, RotateCcw, AlertTriangle } from 'lucide-react';
 
 // ElevenLabs Conversational AI agent + the demo persona's seeded phone.
 // Hardcoded for hackathon speed; move to NEXT_PUBLIC_* envs later.
@@ -57,6 +57,76 @@ interface LogEntry {
 export default function DemoPage() {
   const [busy, setBusy] = useState<Action | null>(null);
   const [log, setLog] = useState<LogEntry[]>([]);
+  // Mic muting: ElevenLabs widget is sensitive to background noise, so we
+  // intercept getUserMedia, capture every audio stream the widget opens,
+  // and flip track.enabled on demand. This works regardless of the widget
+  // version / internal API.
+  const [muted, setMuted] = useState(false);
+  const activeStreamsRef = useRef<MediaStream[]>([]);
+
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return;
+    // Patch once — re-patching on hot-reload would shadow the previous patch.
+    const md = navigator.mediaDevices as MediaDevices & { __fletcherPatched?: boolean };
+    if (md.__fletcherPatched) return;
+    const orig = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+    navigator.mediaDevices.getUserMedia = async (constraints) => {
+      const stream = await orig(constraints);
+      activeStreamsRef.current.push(stream);
+      // Apply current mute state to the new stream immediately.
+      stream.getAudioTracks().forEach((t) => { t.enabled = !muted; });
+      // Drop ended streams so the list doesn't grow forever.
+      stream.getTracks().forEach((t) => t.addEventListener('ended', () => {
+        activeStreamsRef.current = activeStreamsRef.current.filter((s) => s !== stream);
+      }));
+      return stream;
+    };
+    md.__fletcherPatched = true;
+    /* eslint-disable-next-line */
+  }, []);
+
+  // Toggle mic on existing streams whenever `muted` changes.
+  useEffect(() => {
+    activeStreamsRef.current.forEach((s) =>
+      s.getAudioTracks().forEach((t) => { t.enabled = !muted; }),
+    );
+  }, [muted]);
+
+  // Space-bar as push-to-talk shortcut. Only acts when the operator is
+  // currently muted — held space momentarily unmutes; releasing remutes.
+  // If the mic is already active, spacebar is a no-op (so we don't surprise-
+  // mute on release).
+  const mutedRef = useRef(false);
+  useEffect(() => { mutedRef.current = muted; }, [muted]);
+  const pttActiveRef = useRef(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const isTypingTarget = (t: EventTarget | null): boolean => {
+      if (!(t instanceof HTMLElement)) return false;
+      const tag = t.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || t.isContentEditable;
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || e.repeat || isTypingTarget(e.target)) return;
+      if (!mutedRef.current) return; // already unmuted — no-op
+      e.preventDefault();
+      pttActiveRef.current = true;
+      setMuted(false);
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || isTypingTarget(e.target)) return;
+      if (!pttActiveRef.current) return;
+      e.preventDefault();
+      pttActiveRef.current = false;
+      setMuted(true);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, []);
 
   const fire = async (which: Action) => {
     setBusy(which);
@@ -147,6 +217,12 @@ Für Donnerstag und Freitag ist Frost angekündigt.`}
                 <span className="font-mono">{DEMO_CALLER_NAME} · {DEMO_CALLER_PHONE}</span>
                 <span className="text-paper-500"> (per dynamic-variable an Fletcher übermittelt — Clara begrüßt namentlich)</span>
               </div>
+              <div className="mt-2 rounded-md border border-paper-200 bg-paper-50 px-3 py-2 text-xs text-paper-700">
+                <span className="font-semibold">Mikrofon-Steuerung:</span>{' '}
+                <kbd className="rounded border border-paper-300 bg-white px-1 py-0.5 font-mono text-[10px]">Leertaste</kbd>{' '}
+                gedrückt halten zum Sprechen (Push-to-Talk). Klick auf den
+                Button unten links wechselt dauerhaft zwischen stumm / aktiv.
+              </div>
             </div>
           </div>
         </section>
@@ -233,6 +309,26 @@ Für Donnerstag und Freitag ist Frost angekündigt.`}
           )}
         </section>
       </main>
+
+      {/* Floating mute button — fixed bottom-left, opposite the widget's
+          bottom-right bubble. Reachable during the call without scrolling. */}
+      <button
+        onClick={() => setMuted((m) => !m)}
+        aria-pressed={muted}
+        aria-label={muted ? 'Mikrofon einschalten' : 'Mikrofon stumm schalten'}
+        title={muted ? 'Mikrofon stumm — klicken zum Aktivieren (oder Leertaste)' : 'Mikrofon aktiv — klicken zum Stummschalten (oder Leertaste)'}
+        className={
+          'fixed bottom-6 left-6 z-50 flex items-center gap-2 rounded-full px-4 py-3 shadow-lg transition ' +
+          (muted
+            ? 'bg-red-600 text-white hover:bg-red-700'
+            : 'bg-teal-600 text-white hover:bg-teal-700')
+        }
+      >
+        {muted ? <MicOff size={20} /> : <Mic size={20} />}
+        <span className="text-sm font-semibold">
+          {muted ? 'Stumm' : 'Mikro aktiv'}
+        </span>
+      </button>
 
       {/* ElevenLabs Conversational AI widget. Loads the custom element + the
           floating mic bubble in the bottom-right of every page render. The
