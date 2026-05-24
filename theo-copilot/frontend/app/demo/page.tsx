@@ -26,6 +26,7 @@ import { ArrowLeft, Mail, MessageSquare, Phone, RotateCcw, AlertTriangle } from 
 // Hardcoded for hackathon speed; move to NEXT_PUBLIC_* envs later.
 const ELEVENLABS_AGENT_ID = 'agent_5501ksckr2ppejj8ah5n354qq0n5';
 const DEMO_CALLER_PHONE = '+491793960546';  // Köhler's seeded phone
+const DEMO_CALLER_NAME = 'Frau Köhler';     // greeted in the first message
 
 // React doesn't know about ElevenLabs' custom element — declare it loosely
 // so TS doesn't complain about the attributes.
@@ -143,8 +144,8 @@ Für Donnerstag und Freitag ist Frost angekündigt.`}
               </p>
               <div className="mt-3 rounded-md border border-teal-200 bg-white px-3 py-2 text-xs text-paper-700">
                 <span className="font-semibold">Anrufer-Identität:</span>{' '}
-                <span className="font-mono">Margarethe Köhler · {DEMO_CALLER_PHONE}</span>
-                <span className="text-paper-500"> (per dynamic-variable an Fletcher übermittelt)</span>
+                <span className="font-mono">{DEMO_CALLER_NAME} · {DEMO_CALLER_PHONE}</span>
+                <span className="text-paper-500"> (per dynamic-variable an Fletcher übermittelt — Clara begrüßt namentlich)</span>
               </div>
             </div>
           </div>
@@ -244,7 +245,10 @@ Für Donnerstag und Freitag ist Frost angekündigt.`}
       />
       <elevenlabs-convai
         agent-id={ELEVENLABS_AGENT_ID}
-        dynamic-variables={JSON.stringify({ caller_phone: DEMO_CALLER_PHONE })}
+        dynamic-variables={JSON.stringify({
+          caller_phone: DEMO_CALLER_PHONE,
+          caller_name: DEMO_CALLER_NAME,
+        })}
       />
     </div>
   );

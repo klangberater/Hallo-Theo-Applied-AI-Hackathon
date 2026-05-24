@@ -64,7 +64,7 @@ BASE = "https://api.elevenlabs.io"
 HEADERS = {"xi-api-key": API_KEY, "Content-Type": "application/json"}
 
 FIRST_MESSAGE = (
-    "Hallo, hier ist die Telefon-Annahme von hallo theo. "
+    "Guten Tag {{caller_name}}, hier ist die Telefon-Annahme von hallo theo. "
     "Bitte schildern Sie Ihr Anliegen — wir hören zu und melden uns "
     "anschließend bei Ihnen zurück."
 )
@@ -73,6 +73,9 @@ SYSTEM_PROMPT = (
     "Du bist die automatische Telefon-Annahme einer deutschen Hausverwaltung "
     "(hallo theo). Der Anrufer ist ein Mieter und möchte ein Anliegen melden. "
     "Verhalte dich wie ein höflicher, geduldiger Anrufbeantworter.\n\n"
+    "Du sprichst mit: {{caller_name}}. Sprich den Anrufer einmal zu Beginn "
+    "mit Namen an (in der Begrüßung), danach nicht weiter den Namen "
+    "wiederholen — das wirkt unnatürlich.\n\n"
     "WICHTIG: Wir kennen den Anrufer bereits anhand der Telefonnummer — also "
     "Name, Wohnung, Adresse, Vertragsnummer. Du musst NICHTS davon erfragen.\n\n"
     "REGELN (strikt einhalten):\n"
@@ -129,6 +132,15 @@ def _agent_config() -> dict:
                     "prompt": SYSTEM_PROMPT,
                     "llm": LLM,
                     "temperature": 0.3,
+                },
+                # Defaults used when the conversation is started without
+                # an explicit dynamic_variable. Means {{caller_name}} won't
+                # render literally if the embedding page forgets to pass it.
+                "dynamic_variables": {
+                    "dynamic_variable_placeholders": {
+                        "caller_name": "Liebe Mieterin / Lieber Mieter",
+                        "caller_phone": "",
+                    },
                 },
             },
             "tts": {
